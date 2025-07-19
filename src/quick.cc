@@ -40,8 +40,6 @@ void quick_sort(int* array, int left, int right) {
 
     auto pivot = get_random_in_range(left, right);
 
-    std::cout << pivot << std::endl;
-
     pivot = partition(array, left, right, pivot);
 
     quick_sort(array, left, pivot - 1);
