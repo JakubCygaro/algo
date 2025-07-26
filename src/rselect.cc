@@ -1,20 +1,10 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
-#include <iostream>
+#include "common.hpp"
 #include <utility>
 #include <vector>
 #include <random>
-
-namespace{
-    inline static std::random_device rd;
-    inline static std::mt19937 gen(rd());
-
-    int get_random_in_range(int low, int high) {
-        return std::uniform_int_distribution<int> (low, high)(gen);
-    }
-}
 
 int partition(int* arr, int left, int right, int pivot) {
     std::swap(arr[left], arr[pivot]);
@@ -37,7 +27,7 @@ int* rselect(int ith_element, int *arr, int left, int right) {
 
     // std::cout << "========\n";
 
-    auto pivot = get_random_in_range(left, right);
+    auto pivot = common::get_random_in_range(left, right);
     // std::cout << "pivot_v: " << arr[pivot] << std::endl;
     //
     // for (auto i = left; i <= right; i++) {
@@ -77,9 +67,9 @@ int main(void) {
 
     for (auto i = 0; i < 100; i++){
 
-        input.resize(get_random_in_range(1, 1000));
+        input.resize(common::get_random_in_range(1, 1000));
 
-        auto random_pos = get_random_in_range(0, input.size() - 1);
+        auto random_pos = common::get_random_in_range(0, input.size() - 1);
 
         std::ranges::iota(input, 0);
 

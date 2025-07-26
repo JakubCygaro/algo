@@ -6,14 +6,7 @@
 #include <vector>
 #include <random>
 
-namespace{
-    inline static std::random_device rd;
-    inline static std::mt19937 gen(rd());
-
-    int get_random_in_range(int low, int high) {
-        return std::uniform_int_distribution<int> (low, high)(gen);
-    }
-}
+#include "common.hpp"
 
 
 size_t partition(int* array, int left, int right, int pivot){
@@ -38,7 +31,7 @@ size_t partition(int* array, int left, int right, int pivot){
 void quick_sort(int* array, int left, int right) {
     if (left >= right) return;
 
-    auto pivot = get_random_in_range(left, right);
+    auto pivot = common::get_random_in_range(left, right);
 
     pivot = partition(array, left, right, pivot);
 
