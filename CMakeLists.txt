@@ -20,3 +20,7 @@ add_test(NAME rselect_selection COMMAND rselect)
 add_executable(dselect src/dselect.cc)
 target_link_libraries(dselect PRIVATE cpp_std_23)
 add_test(NAME dselect_selection COMMAND dselect)
+
+add_executable(graph_dfs src/graph_dfs.cc)
+target_link_libraries(graph_dfs PRIVATE cpp_std_23)
+add_test(NAME graph_dfs COMMAND graph_dfs)
