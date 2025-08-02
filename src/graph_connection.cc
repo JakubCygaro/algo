@@ -26,7 +26,7 @@ struct GraphData : public gr::ExplorableGraphData {
     }
 };
 
-void test_if_connected(std::function<void(const gr::Graph<GraphData>&, gr::Graph<GraphData>::node_t*)> check_conn_fn) {
+void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_conn_fn) {
 
     const auto vertex_n = common::get_random_in_range(3, 50);
 
@@ -107,7 +107,7 @@ void test_if_connected(std::function<void(const gr::Graph<GraphData>&, gr::Graph
             vertex.node_data.explored = false;
         }
 
-        gr::dfs(graph, vertices[v_i]);
+        gr::dfs<GraphData>(vertices[v_i]);
 
         for (auto i = 0; i < vertices.size(); i++) {
             assert(i < connected_v && v_i < connected_v ?
@@ -149,5 +149,6 @@ int main(void) {
     for (auto i = 0; i < 100; i++) {
         test_if_connected(gr::dfs<GraphData>);
         test_if_connected(gr::bfs<GraphData>);
+        test_if_connected(gr::dfs_recursive<GraphData>);
     }
 }

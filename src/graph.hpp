@@ -104,7 +104,7 @@ namespace gr {
         bool explored{};
     };
     template <typename T, typename N = Graph<T>::node_t>
-    inline void dfs(const Graph<T>& graph, N* start) {
+    inline void dfs(N* start) {
         static_assert(std::is_convertible<T*, ExplorableGraphData*>::value, "T must be derived from ExplorableGraphData");
         std::stack<N*> nodes{};
         nodes.push(start);
@@ -122,7 +122,20 @@ namespace gr {
         }
     }
     template <typename T, typename N = Graph<T>::node_t>
-    inline void bfs(const Graph<T>& graph, N* start) {
+    inline void dfs_recursive(N* v) {
+        static_assert(std::is_convertible<T*, ExplorableGraphData*>::value, "T must be derived from ExplorableGraphData");
+
+        auto* e_ex = static_cast<ExplorableGraphData*>(&v->node_data);
+        e_ex->explored = true;
+
+        for(auto& edge : v->edges) {
+            if (!static_cast<ExplorableGraphData*>(&edge->head->node_data)->explored) {
+                dfs_recursive<T>(edge->head);
+            }
+        }
+    }
+    template <typename T, typename N = Graph<T>::node_t>
+    inline void bfs(N* start) {
         static_assert(std::is_convertible<T*, ExplorableGraphData*>::value, "T must be derived from ExplorableGraphData");
         std::deque<N*> nodes{};
         nodes.push_back(start);
