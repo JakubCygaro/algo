@@ -24,3 +24,7 @@ add_test(NAME dselect_selection COMMAND dselect)
 add_executable(graph_connection_dfs_bfs src/graph_connection.cc)
 target_link_libraries(graph_connection_dfs_bfs PRIVATE cpp_std_23)
 add_test(NAME graph_connection_dfs_bfs COMMAND graph_connection_dfs_bfs)
+
+add_executable(dfs_topo src/dfs_topo.cc)
+target_link_libraries(dfs_topo PRIVATE cpp_std_23)
+add_test(NAME dfs_topo COMMAND dfs_topo)

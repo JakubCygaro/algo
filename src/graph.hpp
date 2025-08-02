@@ -1,6 +1,8 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
+#include <cstddef>
+#include <limits>
 #include <deque>
 #include <list>
 #include <tuple>
@@ -103,6 +105,10 @@ namespace gr {
     public:
         bool explored{};
     };
+    class TopoSortableGraphData : public ExplorableGraphData {
+    public:
+        std::size_t f_value {std::numeric_limits<std::size_t>::max()};
+    };
     template <typename T, typename N = Graph<T>::node_t>
     inline void dfs(N* start) {
         static_assert(std::is_convertible<T*, ExplorableGraphData*>::value, "T must be derived from ExplorableGraphData");
@@ -134,6 +140,34 @@ namespace gr {
             }
         }
     }
+    template <typename T, typename N = Graph<T>::node_t>
+    inline void dfs_topo(Graph<T>& graph, N* v, std::size_t& label) {
+        static_assert(std::is_convertible<T*, TopoSortableGraphData*>::value, "T must be derived from ExplorableGraphData");
+
+        auto* e_ex = static_cast<TopoSortableGraphData*>(&v->node_data);
+        e_ex->explored = true;
+
+        for(auto& edge : v->edges) {
+            if (!static_cast<TopoSortableGraphData*>(&edge->head->node_data)->explored) {
+                dfs_recursive<T>(edge->head);
+            }
+        }
+        e_ex->f_value = label;
+        label--;
+    }
+    template <typename T, typename N = Graph<T>::node_t>
+    inline void topo_sort(Graph<T>& graph) {
+        static_assert(std::is_convertible<T*, TopoSortableGraphData*>::value, "T must be derived from ExplorableGraphData");
+
+        auto current_label = graph.nodes.size();
+
+        for (auto& v : graph.nodes) {
+            if (!static_cast<TopoSortableGraphData*>(&v.node_data)->explored) {
+                dfs_topo<T>(graph, &v, current_label);
+            }
+        }
+    }
+
     template <typename T, typename N = Graph<T>::node_t>
     inline void bfs(N* start) {
         static_assert(std::is_convertible<T*, ExplorableGraphData*>::value, "T must be derived from ExplorableGraphData");
