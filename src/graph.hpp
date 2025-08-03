@@ -149,7 +149,7 @@ namespace gr {
 
         for(auto& edge : v->edges) {
             if (!static_cast<TopoSortableGraphData*>(&edge->head->node_data)->explored) {
-                dfs_recursive<T>(edge->head);
+                dfs_topo<T>(graph, edge->head, label);
             }
         }
         e_ex->f_value = label;
