@@ -141,7 +141,7 @@ namespace gr {
         }
     }
     template <typename T, typename N = Graph<T>::node_t>
-    inline void dfs_topo(Graph<T>& graph, N* v, std::size_t& label) {
+    inline void dfs_topo(N* v, std::size_t& label) {
         static_assert(std::is_convertible<T*, TopoSortableGraphData*>::value, "T must be derived from ExplorableGraphData");
 
         auto* e_ex = static_cast<TopoSortableGraphData*>(&v->node_data);
@@ -149,7 +149,7 @@ namespace gr {
 
         for(auto& edge : v->edges) {
             if (!static_cast<TopoSortableGraphData*>(&edge->head->node_data)->explored) {
-                dfs_topo<T>(graph, edge->head, label);
+                dfs_topo<T>(edge->head, label);
             }
         }
         e_ex->f_value = label;
@@ -163,7 +163,7 @@ namespace gr {
 
         for (auto& v : graph.nodes) {
             if (!static_cast<TopoSortableGraphData*>(&v.node_data)->explored) {
-                dfs_topo<T>(graph, &v, current_label);
+                dfs_topo<T>(&v, current_label);
             }
         }
     }
