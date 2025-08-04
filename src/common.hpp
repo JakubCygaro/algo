@@ -9,7 +9,8 @@ namespace common {
     inline static std::mt19937 gen(rd());
 
     inline static int get_random_in_range(int low, int high) {
-        return std::uniform_int_distribution<int> (low, high)(gen);
+        // return std::uniform_int_distribution<int> (low, high)(gen);
+        return (::rand() + low) % high + 1;
     }
 }
 

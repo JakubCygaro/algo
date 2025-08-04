@@ -1,11 +1,8 @@
 #include "graph.hpp"
-#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <format>
-#include <array>
 #include <ostream>
-#include <tuple>
 #include "common.hpp"
 
 using namespace gr;
@@ -29,7 +26,6 @@ struct GraphData : public gr::ExplorableGraphData {
 void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_conn_fn) {
 
     const auto vertex_n = common::get_random_in_range(3, 50);
-
     // how many vertices have to be connected
     const auto connected_v = common::get_random_in_range(1, vertex_n);
 
