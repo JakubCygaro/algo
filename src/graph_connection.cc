@@ -78,8 +78,8 @@ void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_
                 vertices[i + k]->edges.push_back(&graph.edges.back());
             }
         } else {
-            auto random_to_connect = common::get_random_in_range(i + 1, vertex_n - 1);
-            if (random_to_connect > vertex_n || random_to_connect <= i) break;
+            auto random_to_connect = common::get_random_in_range(i + 1, vertex_n);
+            if (random_to_connect >= vertex_n || random_to_connect <= i) break;
 
             if (common::get_random_in_range(1, 100) > 50) {
                 graph.edges.push_back({
