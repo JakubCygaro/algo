@@ -32,3 +32,7 @@ add_test(NAME dfs_topo COMMAND dfs_topo)
 add_executable(graph_scc src/graph_scc.cc)
 target_link_libraries(graph_scc PRIVATE cpp_std_23)
 add_test(NAME graph_scc COMMAND graph_scc)
+
+add_executable(dijkstra src/dijkstra.cc)
+target_link_libraries(dijkstra PRIVATE cpp_std_23)
+add_test(NAME dijkstra COMMAND dijkstra)
