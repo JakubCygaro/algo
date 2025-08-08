@@ -14,6 +14,18 @@
 #include <stdexcept>
 #include <stack>
 namespace gr {
+    class ExplorableGraphData {
+    public:
+        bool explored{};
+    };
+    class TopoSortableGraphData : public ExplorableGraphData {
+    public:
+        std::size_t f_value {std::numeric_limits<std::size_t>::max()};
+    };
+    class SCCGraphData : public TopoSortableGraphData {
+    public:
+        std::size_t scc_n {0};
+    };
     struct edge_empty_data{};
     template <typename T, typename E = edge_empty_data>
     class Graph {
@@ -37,6 +49,13 @@ namespace gr {
         using edge_data_t = E;
         using vmatrix = std::vector<std::tuple<node_data_t, std::vector<int>>>;
         using vmatrix_e = std::vector<std::tuple<T, std::vector<std::tuple<int, edge_data_t>>>>;
+
+        struct DijkstraData : public ExplorableGraphData {
+            std::size_t len{};
+            node_t* prev{};
+            bool in_path {false};
+        };
+        using dijkstra_data_t  = DijkstraData;
     public:
         std::list<Node> nodes{};
         std::list<Edge> edges{};
@@ -148,18 +167,6 @@ namespace gr {
                 .edges = std::move(edges)
             };
         }
-    };
-    class ExplorableGraphData {
-    public:
-        bool explored{};
-    };
-    class TopoSortableGraphData : public ExplorableGraphData {
-    public:
-        std::size_t f_value {std::numeric_limits<std::size_t>::max()};
-    };
-    class SCCGraphData : public TopoSortableGraphData {
-    public:
-        std::size_t scc_n {0};
     };
     template <typename T, typename N = Graph<T>::node_t>
     inline void dfs(N* start) {
@@ -302,22 +309,22 @@ namespace gr {
         DijkstraEdge(std::size_t s) : dijkstra_score(s){}
         DijkstraEdge() {}
     };
-    struct DijkstraData : public ExplorableGraphData {
-        std::size_t len{};
-        bool in_path {false};
-    };
-    template <typename T, typename E, typename N = Graph<T, E>::node_t, typename ED = Graph<T, E>::edge_t>
+    template <typename T, typename E,
+             typename G = Graph<T, E>,
+             typename N = G::node_t,
+             typename ED = G::edge_t,
+             typename DData = G::dijkstra_data_t>
     inline void dijkstra(Graph<T, E>& graph, N* start) {
-        static_assert(std::is_convertible<T*, DijkstraData*>::value, "T must be derived from DijkstraData");
+        static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
         static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
 
-        constexpr auto INF = std::numeric_limits<decltype(DijkstraData::len)>::max();
+        constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
 
         std::vector<N*> path{};
 
         path.push_back(start);
-        static_cast<DijkstraData*>(&start->node_data)->len = 0;
-        static_cast<DijkstraData*>(&start->node_data)->in_path = true;
+        static_cast<DData*>(&start->node_data)->len = 0;
+        static_cast<DData*>(&start->node_data)->in_path = true;
 
         for(auto& v : graph.nodes) {
             if(&v == start) continue;
@@ -348,24 +355,29 @@ namespace gr {
             if(path.size() == graph.nodes.size()) break;
         }
     }
-    template <typename T, typename E, typename N = Graph<T, E>::node_t, typename ED = Graph<T, E>::edge_t>
-    inline const std::vector<N*> dijkstra_shortest_path(Graph<T, E>& graph, N* start, N* end) {
-        static_assert(std::is_convertible<T*, DijkstraData*>::value, "T must be derived from DijkstraData");
+    template <typename T, typename E,
+             typename G = Graph<T, E>,
+             typename N = G::node_t,
+             typename ED = G::edge_t,
+             typename DData = G::DijkstraData>
+    inline const std::stack<N*> dijkstra_shortest_path(Graph<T, E>& graph, N* start, N* end) {
+        static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
         static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
 
-        constexpr auto INF = std::numeric_limits<decltype(DijkstraData::len)>::max();
+        constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
 
-        std::vector<N*> path{};
+        std::stack<N*> path{};
 
-        path.push_back(start);
-        static_cast<DijkstraData*>(&start->node_data)->len = 0;
-        static_cast<DijkstraData*>(&start->node_data)->in_path = true;
+        static_cast<DData*>(&start->node_data)->len = 0;
+        static_cast<DData*>(&start->node_data)->in_path = true;
+        static_cast<DData*>(&start->node_data)->prev = nullptr;
 
         for(auto& v : graph.nodes) {
             if(&v == start) continue;
             v.node_data.len = INF;
+            v.node_data.prev = nullptr;
         }
-        while(true) {
+        for(auto i = graph.nodes.size(); i >= 0; i--) {
             T* v_d = nullptr;
             N* w = nullptr;
             ED* edge = nullptr;
@@ -382,12 +394,18 @@ namespace gr {
                     w = e.head;
                     min_score = candidate;
                     edge = &e;
+                    w->node_data.prev = e.tail;
                 }
             }
             w->node_data.len = v_d->len + edge->edge_data.dijkstra_score;
             w->node_data.in_path = true;
-            path.push_back(w);
-            if(w == end) break;
+            if(w == end) {
+                while(w) {
+                    path.push(w);
+                    w = w->node_data.prev;
+                }
+                break;
+            };
         }
         return path;
     }
