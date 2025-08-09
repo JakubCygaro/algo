@@ -25,9 +25,9 @@ struct GraphData : public gr::ExplorableGraphData {
 
 void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_conn_fn) {
 
-    const auto vertex_n = common::get_random_in_range(3, 50);
+    const std::size_t vertex_n = common::get_random_in_range(3, 50);
     // how many vertices have to be connected
-    const auto connected_v = common::get_random_in_range(1, vertex_n);
+    const std::size_t connected_v = common::get_random_in_range(1, vertex_n);
 
     gr::Graph<GraphData> graph{};
 
@@ -35,7 +35,7 @@ void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_
     // keep track of all the vertices
     std::vector<node_t*> vertices(vertex_n);
 
-    for (auto i = 0; i < vertex_n; i++) {
+    for (std::size_t i = 0; i < vertex_n; i++) {
         node_t new_node = {
             .edges = {},
             .node_data = GraphData(i),
@@ -45,51 +45,57 @@ void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_
         vertices[i] = &graph.nodes.back();
     }
     // generate random connections
-    for (auto i = 1; i < vertex_n; i++) {
+    for (std::size_t i = 1; i < vertex_n; i++) {
         if (i < connected_v) {
             graph.edges.push_back({
                         .tail = vertices[i - 1],
-                        .head = vertices[i]
+                        .head = vertices[i],
+                        .edge_data = {},
                         });
             vertices[i]->edges.push_back(&graph.edges.back());
             vertices[i-1]->edges.push_back(&graph.edges.back());
             graph.edges.push_back({
                         .tail = vertices[i],
-                        .head = vertices[i - 1]
+                        .head = vertices[i - 1],
+                        .edge_data = {},
                         });
             vertices[i]->edges.push_back(&graph.edges.back());
             vertices[i-1]->edges.push_back(&graph.edges.back());
 
             // for each further vertex there is a 30 percent chance that it will be connected with the current one
-            for (auto k = 2; k < connected_v - i ; k++) {
+            for (std::size_t k = 2; k < connected_v - i ; k++) {
                 if(common::get_random_in_range(1, 100) > 15) continue;
 
                 graph.edges.push_back({
                             .tail = vertices[i + k],
-                            .head = vertices[i]
+                            .head = vertices[i],
+                            .edge_data = {},
                             });
                 vertices[i]->edges.push_back(&graph.edges.back());
                 vertices[i + k]->edges.push_back(&graph.edges.back());
                 graph.edges.push_back({
                             .tail = vertices[i],
-                            .head = vertices[i + k]
+                            .head = vertices[i + k],
+                            .edge_data = {},
                             });
                 vertices[i]->edges.push_back(&graph.edges.back());
                 vertices[i + k]->edges.push_back(&graph.edges.back());
             }
         } else {
-            auto random_to_connect = common::get_random_in_range(i + 1, vertex_n);
+            std::size_t random_to_connect = common::get_random_in_range(i + 1, vertex_n);
             if (random_to_connect >= vertex_n || random_to_connect <= i) break;
 
             if (common::get_random_in_range(1, 100) > 50) {
                 graph.edges.push_back({
                             .tail = vertices[random_to_connect],
-                            .head = vertices[i]
+                            .head = vertices[i],
+                            .edge_data = {},
                             });
                 vertices[i]->edges.push_back(&graph.edges.back());
                 graph.edges.push_back({
                             .tail = vertices[i],
-                            .head = vertices[random_to_connect]
+                            .head = vertices[random_to_connect],
+                            .edge_data = {},
                             });
                 vertices[i]->edges.push_back(&graph.edges.back());
             }
@@ -97,15 +103,15 @@ void test_if_connected(std::function<void(gr::Graph<GraphData>::node_t*)> check_
     }
 
     // test random graph
-    for (auto v_i = 0; v_i < vertices.size(); v_i++) {
+    for (std::size_t v_i = 0; v_i < vertices.size(); v_i++) {
         // mark all as unexplored
         for (auto& vertex : graph.nodes) {
             vertex.node_data.explored = false;
         }
 
-        gr::dfs<GraphData>(vertices[v_i]);
+        check_conn_fn(vertices[v_i]);
 
-        for (auto i = 0; i < vertices.size(); i++) {
+        for (std::size_t i = 0; i < vertices.size(); i++) {
             assert(i < connected_v && v_i < connected_v ?
                     vertices[i]->node_data.explored :
                     i >= connected_v && v_i < connected_v ?

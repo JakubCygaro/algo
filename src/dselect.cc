@@ -4,8 +4,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
-#include <format>
-#include <iostream>
 #include <random>
 #include <vector>
 #include "common.hpp"
@@ -77,7 +75,7 @@ int dselect(std::vector<int>& array, const int ith) {
 
     assert(first_round.size() != 0);
 
-    for(auto h = 0; h < first_round.size(); h++) {
+    for(std::size_t h = 0; h < first_round.size(); h++) {
         auto start = h * 5;
         auto end = start + 5;
         if (end > array.size()) {
@@ -100,7 +98,7 @@ int dselect(std::vector<int>& array, const int ith) {
     auto p = dselect(first_round, (array.size() / 10));
 
     int j;
-    for(auto i = 0; i < array.size(); i++) {
+    for(std::size_t i = 0; i < array.size(); i++) {
         if(array[i] == p){
             j = i;
         }

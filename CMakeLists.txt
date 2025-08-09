@@ -6,6 +6,9 @@ include_directories(BEFORE src)
 add_library(cpp_std_23 INTERFACE)
 
 target_compile_features(cpp_std_23 INTERFACE cxx_std_23)
+target_compile_options(cpp_std_23
+    INTERFACE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
+)
 
 add_executable(merge src/merge.cc)
 add_test(NAME merge_sort COMMAND merge)
@@ -36,3 +39,7 @@ add_test(NAME graph_scc COMMAND graph_scc)
 add_executable(dijkstra src/dijkstra.cc)
 target_link_libraries(dijkstra PRIVATE cpp_std_23)
 add_test(NAME dijkstra COMMAND dijkstra)
+
+add_executable(heap src/heap.cc)
+target_link_libraries(heap PRIVATE cpp_std_23)
+add_test(NAME heap COMMAND heap)

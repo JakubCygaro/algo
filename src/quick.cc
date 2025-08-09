@@ -1,10 +1,9 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <iostream>
+#include <ctime>
 #include <utility>
 #include <vector>
-#include <random>
 
 #include "common.hpp"
 
