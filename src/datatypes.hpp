@@ -112,7 +112,7 @@ namespace dt {
                 }
             }
         }
-        inline T extract_min() {
+        inline T extract() {
             auto ret = m_data[0];
             std::swap(m_data[0], m_data[--m_size]);
             std::size_t i = 0;

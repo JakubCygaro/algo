@@ -12,7 +12,7 @@ void heap_sort_max(std::vector<int>& v) {
     dt::MaxHeap<int> heap(v.size());
     auto trans = std::bind(&dt::MaxHeap<int>::insert, &heap, std::placeholders::_1);
     std::ranges::for_each(v, trans);
-    std::ranges::for_each(v, [&](auto& e){ e = heap.extract_min(); });
+    std::ranges::for_each(v, [&](auto& e){ e = heap.extract(); });
 }
 void validate_min(std::vector<int>& arr){
     for (std::size_t i = 1; i < arr.size(); i++){
@@ -23,7 +23,7 @@ void heap_sort_min(std::vector<int>& v) {
     dt::MinHeap<int> heap(v.size());
     auto trans = std::bind(&dt::MinHeap<int>::insert, &heap, std::placeholders::_1);
     std::ranges::for_each(v, trans);
-    std::ranges::for_each(v, [&](auto& e){ e = heap.extract_min(); });
+    std::ranges::for_each(v, [&](auto& e){ e = heap.extract(); });
 }
 int main(void) {
     for (auto i = 0; i < 100; i++){
