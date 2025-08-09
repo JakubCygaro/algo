@@ -9,11 +9,14 @@ target_compile_features(cpp_std_23 INTERFACE cxx_std_23)
 target_compile_options(cpp_std_23
     INTERFACE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
 )
+add_compile_definitions($<$<CONFIG:Testing>:TEST_INTERNALS>)
 
 add_executable(merge src/merge.cc)
+target_link_libraries(merge PRIVATE cpp_std_23)
 add_test(NAME merge_sort COMMAND merge)
 
 add_executable(quick src/quick.cc)
+target_link_libraries(quick PRIVATE cpp_std_23)
 add_test(NAME quick_sort COMMAND quick)
 
 add_executable(rselect src/rselect.cc)

@@ -1,25 +1,30 @@
+#include <algorithm>
 #include <cassert>
 #include <ctime>
 #include <datatypes.hpp>
 #include <functional>
-#include <print>
 #include <vector>
+#include <common.hpp>
 
-void heapify() {
-    std::vector<std::tuple<int, int>> arr {  { 8, 1 }, { 7, 2 },{ 6, 3 },{ 5, 4 },{ 4, 5 },};
-    auto heap = dt::MinHeap<int>::heapify(std::move(arr));
-    // while(!heap.empty()) {
-    //     std::print("{} ", heap.extract());
-    // }
-    // std::println("");
-    auto [key, v] = heap.search(3);
-    if(v){
-        std::println("{} {}", key, *v);
-        heap.delete_element(v);
-        while(!heap.empty()){
-            std::print("{} ", heap.extract());
+void heapify_with_search_and_delete() {
+    auto const size = common::get_random_in_range(1, 100);
+    std::vector<std::tuple<int, int>> arr(size);
+    auto i = 0;
+    std::ranges::for_each(arr, [&](auto& elem){
+        elem = { common::get_random_in_range(-1000, 1000), i++ };
+    });
+    auto heap = dt::MinHeap<int>::heapify(arr);
+
+    for(i = 0; i < size; i++){
+        auto [k, v] = heap.search(std::get<1>(arr[i]));
+        assert(v != nullptr && "inserted value not found in heap");
+        assert(*v == std::get<1>(arr[i]) && "found value is different than what was inserted");
+        assert(k == std::get<0>(arr[i]) && "key was different");
+    }
+    for(auto i = 0; i < size; i++){
+        if(common::get_random_in_range(1, 100) < 50){
+            assert(heap.delete_element(std::get<1>(heap.search(std::get<1>(arr[i])))) && "failed to delete element");
         }
-        std::println("");
     }
 }
 
@@ -46,7 +51,6 @@ void heap_sort_min(std::vector<int>& v) {
     std::ranges::for_each(v, [&](auto& e){ e = std::get<0>(heap.extract()); });
 }
 int main(void) {
-    heapify();
     for (auto i = 0; i < 100; i++){
         std::srand(time(0));
         std::vector<int> input{};
@@ -67,4 +71,6 @@ int main(void) {
         heap_sort_max(input);
         validate_max(input);
     }
+    for(auto i = 0; i < 100; i++ )
+        heapify_with_search_and_delete();
 }

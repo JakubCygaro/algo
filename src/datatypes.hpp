@@ -1,9 +1,8 @@
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <iterator>
-#include <print>
 #include <tuple>
 #include <vector>
 namespace dt {
@@ -115,14 +114,6 @@ namespace dt {
                 grow();
             auto i = m_size - 1;
             m_data[i] = Cell{k, elem};
-            // while(auto p = parent(i)) {
-            //     if (CompareFunc(m_data[i].key, m_data[p.value()].key)){
-            //         std::swap(m_data[p.value()], m_data[i]);
-            //         i = p.value();
-            //     } else {
-            //         break;
-            //     }
-            // }
             while(auto j = shift_up(i)) {
                 i = j.value();
             }
@@ -134,35 +125,6 @@ namespace dt {
             while(auto j = shift_down(i)) {
                 i = j.value();
             }
-            // while(true ) {
-            //     auto lc = left_child(i);
-            //     auto rc = right_child(i);
-            //     if (lc && rc) {
-            //         auto min_idx = CompareFunc(m_data[lc.value()].key, m_data[rc.value()].key) ? lc.value() : rc.value();
-            //         if (CompareFunc(m_data[min_idx].key, m_data[i].key)) {
-            //             std::swap(m_data[min_idx], m_data[i]);
-            //             i = min_idx;
-            //         } else {
-            //             break;
-            //         }
-            //     } else if (lc) {
-            //         if (CompareFunc(m_data[lc.value()].key, m_data[i].key)) {
-            //             std::swap(m_data[lc.value()], m_data[i]);
-            //             i = lc.value();
-            //         } else {
-            //             break;
-            //         }
-            //     } else if (rc) {
-            //         if (CompareFunc(m_data[rc.value()].key, m_data[i].key)) {
-            //             std::swap(m_data[rc.value()], m_data[i]);
-            //             i = rc.value();
-            //         } else {
-            //             break;
-            //         }
-            //     } else {
-            //         break;
-            //     }
-            // }
             return std::make_tuple(ret.key, ret.value);
         }
         inline T& top() const {
@@ -183,6 +145,9 @@ namespace dt {
             while(auto j = shift_down(i)){
                 i = j.value();
             }
+#ifdef TEST_INTERNALS
+            verify_heap_property();
+#endif
             return found;
         }
         inline std::tuple<Key, T*> search(const T& comp) {
@@ -233,13 +198,19 @@ namespace dt {
                     }
                 }
             }
-            for(auto i = 0; i < m_size; i++){
-                std::print("{} ", m_data[i].key);
-            }
-            std::println();
+#ifdef TEST_INTERNALS
+            verify_heap_property();
+#endif
         }
+#ifdef TEST_INTERNALS
+        inline void verify_heap_property(){
+            for(std::size_t i = 0; i < m_size; i++){
+                assert(!shift_down(i).has_value() && "heap property broken");
+            }
+        }
+#endif
     public:
-        inline static Heap<Key, T, CompareFunc> heapify(std::vector<std::tuple<Key, T>>&& arr){
+        inline static Heap<Key, T, CompareFunc> heapify(const std::vector<std::tuple<Key, T>>& arr){
             Heap<Key, T, CompareFunc> heap(arr.size());
             std::size_t i = 0;
             std::for_each(arr.begin(), arr.end(), [&](auto v){
@@ -249,7 +220,7 @@ namespace dt {
             heap.heapify_impl();
             return heap;
         }
-        inline static Heap<Key, T, CompareFunc> heapify(std::vector<Key>&& arr){
+        inline static Heap<Key, T, CompareFunc> heapify(const std::vector<Key>& arr){
             Heap<Key, T, CompareFunc> heap(arr.size());
             heap.m_size = arr.size();
             std::size_t i = 0;
