@@ -6,12 +6,21 @@
 #include <vector>
 
 void heapify() {
-    std::vector<int> arr {  8, 7, 6, 5, 4, 3, 2, 1  };
+    std::vector<std::tuple<int, int>> arr {  { 8, 1 }, { 7, 2 },{ 6, 3 },{ 5, 4 },{ 4, 5 },};
     auto heap = dt::MinHeap<int>::heapify(std::move(arr));
-    while(!heap.empty()) {
-        std::print("{} ", heap.extract());
+    // while(!heap.empty()) {
+    //     std::print("{} ", heap.extract());
+    // }
+    // std::println("");
+    auto [key, v] = heap.search(3);
+    if(v){
+        std::println("{} {}", key, *v);
+        heap.delete_element(v);
+        while(!heap.empty()){
+            std::print("{} ", heap.extract());
+        }
+        std::println("");
     }
-    std::println("");
 }
 
 void validate_max(std::vector<int>& arr){

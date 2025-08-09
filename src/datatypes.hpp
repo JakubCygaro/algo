@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iterator>
+#include <print>
 #include <tuple>
 #include <vector>
 namespace dt {
@@ -167,8 +168,34 @@ namespace dt {
         inline T& top() const {
             return m_data[0];
         }
-        inline bool delete_item(T* elem) {
-
+        inline bool delete_element(T* elem) {
+            std::size_t i = 0;
+            auto found = false;
+            for(; i < m_size; i++){
+                if((found = (&m_data[i].value == elem))) break;
+            }
+            if(!found) return found;
+            std::swap(m_data[i], m_data[--m_size]);
+            m_data[m_size] = {};
+            while(auto j = shift_up(i)){
+                i = j.value();
+            }
+            while(auto j = shift_down(i)){
+                i = j.value();
+            }
+            return found;
+        }
+        inline std::tuple<Key, T*> search(const T& comp) {
+            std::size_t i = 0;
+            auto found = false;
+            for (;i < m_size && !empty(); i++){
+                if(m_data[i].value == comp) {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) return std::make_tuple<Key, T*>( {}, nullptr );
+            return { m_data[i].key, &m_data[i].value };
         }
         /// if a shift up has occured, return the new position of i
         inline std::optional<std::size_t> shift_up(std::size_t i) {
@@ -178,6 +205,7 @@ namespace dt {
             }
             return std::nullopt;
         }
+        /// if a shift down has occured, return the new position of i
         inline std::optional<std::size_t> shift_down(std::size_t i) {
             auto lc = left_child(i);
             auto rc = right_child(i);
@@ -196,15 +224,29 @@ namespace dt {
             }
             return std::nullopt;
         }
+    private:
+        inline void heapify_impl(){
+            for(auto i = m_size - 1; i != 0; i--){
+                if(auto p = parent(i); p.has_value()){
+                    while(auto j = shift_down(p.value())) {
+                        p = j;
+                    }
+                }
+            }
+            for(auto i = 0; i < m_size; i++){
+                std::print("{} ", m_data[i].key);
+            }
+            std::println();
+        }
+    public:
         inline static Heap<Key, T, CompareFunc> heapify(std::vector<std::tuple<Key, T>>&& arr){
             Heap<Key, T, CompareFunc> heap(arr.size());
             std::size_t i = 0;
             std::for_each(arr.begin(), arr.end(), [&](auto v){
-                heap.m_data[i++] = v;
+                heap.m_data[i++] = {v};
             });
-            for(auto i = heap.m_size - 1; i >= 0; i--){
-                heap.shift_up(i);
-            }
+            heap.m_size = arr.size();
+            heap.heapify_impl();
             return heap;
         }
         inline static Heap<Key, T, CompareFunc> heapify(std::vector<Key>&& arr){
@@ -214,9 +256,7 @@ namespace dt {
             std::for_each(arr.begin(), arr.end(), [&](auto v){
                 heap.m_data[i++] = {v, T{}};
             });
-            for(auto i = heap.m_size - 1; i != 0; i--){
-                heap.shift_up(i);
-            }
+            heap.heapify_impl();
             return heap;
         }
     };
