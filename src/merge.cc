@@ -45,7 +45,7 @@ std::vector<int> merge_sort(std::vector<int>& arr)
     }
     return output;
 }
-void validate(std::vector<int>& arr){
+void validate_min(std::vector<int>& arr){
     for (auto i = 1; i < arr.size(); i++){
         assert(arr[i] >= arr[i-1]);
     }
@@ -59,7 +59,7 @@ int main(void) {
             v = rand() % 1000;
         });
         input = merge_sort(input);
-        validate(input);
+        validate_min(input);
     }
 }
 

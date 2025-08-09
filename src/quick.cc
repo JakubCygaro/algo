@@ -37,7 +37,7 @@ void quick_sort(int* array, int left, int right) {
     quick_sort(array, left, pivot - 1);
     quick_sort(array, pivot + 1, right);
 }
-void validate(std::vector<int>& arr){
+void validate_min(std::vector<int>& arr){
     for (auto i = 1; i < arr.size(); i++){
         assert(arr[i] >= arr[i-1]);
     }
@@ -51,6 +51,6 @@ int main(void) {
             v = rand() % 1000;
         });
         quick_sort(input.data(), 0, input.size() - 1);
-        validate(input);
+        validate_min(input);
     }
 }

@@ -3,7 +3,17 @@
 #include <cstdio>
 #include <cstring>
 namespace dt {
-    template <typename T>
+    namespace {
+        template <typename T>
+        inline bool a_less_b_fn(const T& a, const T& b){
+            return a < b;
+        }
+        template <typename T>
+        inline bool a_more_b_fn(const T& a, const T& b){
+            return !a_less_b_fn<T>(a, b);
+        }
+    }
+    template <typename T, bool(*F)(const T&, const T&)>
     class Heap {
     private:
         T* m_data;
@@ -19,24 +29,24 @@ namespace dt {
     explicit Heap(std::size_t capacity) : m_cap(capacity), m_size(0) {
         m_data = new T[m_cap];
     }
-    Heap(const Heap<T>& other) : m_cap(other.m_cap), m_size(other.m_size) {
+    Heap(const Heap<T, F>& other) : m_cap(other.m_cap), m_size(other.m_size) {
         m_data = new T[m_cap];
         std::memcpy(m_data, other.m_data, m_cap);
     }
-    Heap& operator=(const Heap<T>& other) {
+    Heap& operator=(const Heap<T, F>& other) {
         m_cap = other.m_cap;
         m_size = other.m_size;
         m_data = new T[m_cap];
         std::memcpy(m_data, other.m_data, m_cap);
         return *this;
     }
-    Heap(Heap<T>&& other) : m_cap(other.m_cap), m_size(other.m_size) {
+    Heap(Heap<T, F>&& other) : m_cap(other.m_cap), m_size(other.m_size) {
         m_data = other.m_data;
         other.m_size = 0;
         other.m_cap = 0;
         other.m_data = nullptr;
     }
-    Heap& operator=(Heap<T>&& other) {
+    Heap& operator=(Heap<T, F>&& other) {
         m_cap = other.m_cap;
         m_size = other.m_size;
         m_data = other.m_data;
@@ -94,7 +104,7 @@ namespace dt {
             auto i = m_size - 1;
             m_data[i] = elem;
             while(auto p = parent(i)) {
-                if (m_data[p.value()] > m_data[i]){
+                if (F(m_data[i], m_data[p.value()])){
                     std::swap(m_data[p.value()], m_data[i]);
                     i = p.value();
                 } else {
@@ -110,22 +120,22 @@ namespace dt {
                 auto lc = left_child(i);
                 auto rc = right_child(i);
                 if (lc && rc) {
-                    auto min_idx = m_data[lc.value()] < m_data[rc.value()] ? lc.value() : rc.value();
-                    if (m_data[min_idx] < m_data[i]) {
+                    auto min_idx = F(m_data[lc.value()], m_data[rc.value()]) ? lc.value() : rc.value();
+                    if (F(m_data[min_idx], m_data[i])) {
                         std::swap(m_data[min_idx], m_data[i]);
                         i = min_idx;
                     } else {
                         break;
                     }
                 } else if (lc) {
-                    if (m_data[lc.value()] < m_data[i]) {
+                    if (F(m_data[lc.value()], m_data[i])) {
                         std::swap(m_data[lc.value()], m_data[i]);
                         i = lc.value();
                     } else {
                         break;
                     }
                 } else if (rc) {
-                    if (m_data[rc.value()] < m_data[i]) {
+                    if (F(m_data[rc.value()], m_data[i])) {
                         std::swap(m_data[rc.value()], m_data[i]);
                         i = rc.value();
                     } else {
@@ -138,5 +148,9 @@ namespace dt {
             return ret;
         }
     };
+    template <typename T>
+    using MinHeap = Heap<T, a_less_b_fn<T>>;
+    template <typename T>
+    using MaxHeap = Heap<T, a_more_b_fn<T>>;
 
 }
