@@ -1,3 +1,5 @@
+#ifndef DATATYPES_HPP
+#define DATATYPES_HPP
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -5,6 +7,7 @@
 #include <cstring>
 #include <tuple>
 #include <vector>
+
 namespace dt {
     namespace {
         template <typename T>
@@ -67,7 +70,7 @@ namespace dt {
         return *this;
     }
     ~Heap() {
-        if(m_cap != 0){
+        if(m_data){
             delete[] m_data;
         }
     }
@@ -82,7 +85,7 @@ namespace dt {
         inline void shrink() {
             m_cap = std::clamp(m_cap / SHRINK_FACTOR, m_size, m_cap);
             auto tmp = new Cell[m_cap];
-            std::memcpy(tmp, m_data, m_size);
+            std::memcpy(tmp, m_data, m_size * sizeof(Cell));
             delete[] m_data;
             m_data = tmp;
         }
@@ -139,6 +142,9 @@ namespace dt {
             if(!found) return found;
             std::swap(m_data[i], m_data[--m_size]);
             m_data[m_size] = {};
+            if (m_size < (m_cap / 2)) {
+                shrink();
+            }
             while(auto j = shift_up(i)){
                 i = j.value();
             }
@@ -231,9 +237,9 @@ namespace dt {
             return heap;
         }
     };
-    template <typename T>
-    using MinHeap = Heap<int, T, a_less_b_fn<T>>;
-    template <typename T>
-    using MaxHeap = Heap<int, T, a_more_b_fn<T>>;
-
+    template <typename Key, typename T>
+    using MinHeap = Heap<Key, T, a_less_b_fn<Key>>;
+    template <typename Key, typename T>
+    using MaxHeap = Heap<Key, T, a_more_b_fn<Key>>;
 }
+#endif

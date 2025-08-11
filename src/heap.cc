@@ -13,7 +13,7 @@ void heapify_with_search_and_delete() {
     std::ranges::for_each(arr, [&](auto& elem){
         elem = { common::get_random_in_range(-1000, 1000), i++ };
     });
-    auto heap = dt::MinHeap<int>::heapify(arr);
+    auto heap = dt::MinHeap<int, int>::heapify(arr);
 
     for(i = 0; i < size; i++){
         auto [k, v] = heap.search(std::get<1>(arr[i]));
@@ -34,8 +34,8 @@ void validate_max(std::vector<int>& arr){
     }
 }
 void heap_sort_max(std::vector<int>& v) {
-    dt::MaxHeap<int> heap(v.size());
-    auto trans = std::bind(&dt::MaxHeap<int>::insert, &heap, std::placeholders::_1, std::placeholders::_1);
+    dt::MaxHeap<int, int> heap(v.size());
+    auto trans = std::bind(&dt::MaxHeap<int, int>::insert, &heap, std::placeholders::_1, std::placeholders::_1);
     std::ranges::for_each(v, trans);
     std::ranges::for_each(v, [&](auto& e){ e = std::get<0>(heap.extract()); });
 }
@@ -45,8 +45,8 @@ void validate_min(std::vector<int>& arr){
     }
 }
 void heap_sort_min(std::vector<int>& v) {
-    dt::MinHeap<int> heap(v.size());
-    auto trans = std::bind(&dt::MinHeap<int>::insert, &heap, std::placeholders::_1, std::placeholders::_1);
+    dt::MinHeap<int, int> heap(v.size());
+    auto trans = std::bind(&dt::MinHeap<int, int>::insert, &heap, std::placeholders::_1, std::placeholders::_1);
     std::ranges::for_each(v, trans);
     std::ranges::for_each(v, [&](auto& e){ e = std::get<0>(heap.extract()); });
 }

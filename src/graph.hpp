@@ -3,6 +3,9 @@
 
 #include <cstddef>
 #include <algorithm>
+#include <print>
+#undef TEST_INTERNALS
+#include <datatypes.hpp>
 #include <format>
 #include <iostream>
 #include <limits>
@@ -139,14 +142,14 @@ namespace gr {
             std::list<Graph<T, E>::Edge> edges{};
 
             //create nodes
-            for (auto i = 0; i < N; i++){
+            for (std::size_t i = 0; i < N; i++){
                 nodes.push_back(Graph<T, E>::Node{.edges = {}, .node_data = std::get<0>(mtx[i])});
                 nodes_v[i] = &nodes.back();
             }
 
 
-            for (auto node_a = 0; node_a < N; node_a++) {
-                for(auto node_b = 0; node_b < N; node_b++) {
+            for (std::size_t node_a = 0; node_a < N; node_a++) {
+                for(std::size_t node_b = 0; node_b < N; node_b++) {
                     //skip if this is the same node
                     if (node_a == node_b) continue;
 
@@ -320,17 +323,16 @@ namespace gr {
 
         constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
 
-        std::vector<N*> path{};
 
-        path.push_back(start);
         static_cast<DData*>(&start->node_data)->len = 0;
         static_cast<DData*>(&start->node_data)->in_path = true;
-
         for(auto& v : graph.nodes) {
             if(&v == start) continue;
             v.node_data.len = INF;
+            v.node_data.in_path = false;
         }
-        while(true) {
+
+        for(std::size_t i = 1; i < graph.nodes.size(); i++) {
             T* v_d = nullptr;
             N* w = nullptr;
             ED* edge = nullptr;
@@ -351,8 +353,6 @@ namespace gr {
             }
             w->node_data.len = v_d->len + edge->edge_data.dijkstra_score;
             w->node_data.in_path = true;
-            path.push_back(w);
-            if(path.size() == graph.nodes.size()) break;
         }
     }
     template <typename T, typename E,
@@ -406,6 +406,76 @@ namespace gr {
                 }
                 break;
             };
+        }
+        return path;
+    }
+    template <typename T, typename E,
+             typename G = Graph<T, E>,
+             typename N = G::node_t,
+             typename ED = G::edge_t,
+             typename DData = G::dijkstra_data_t>
+    inline void dijkstra_h(Graph<T, E>& graph, N* start) {
+        static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
+        static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
+
+        constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
+
+        dt::MinHeap<decltype(DData::len), N*> heap{};
+
+        static_cast<DData*>(&start->node_data)->len = 0;
+        heap.insert(0, start);
+        for(N& v : graph.nodes) {
+            if(&v == start) continue;
+            heap.insert(INF, &v);
+            v.node_data.in_path = false;
+        }
+        while(!heap.empty()) {
+            auto [k, w] = heap.extract();
+            w->node_data.len = k;
+            w->node_data.in_path = true;
+            for(auto e : w->edges) {
+                if(e->head->node_data.in_path) continue;
+                auto [len, found] = heap.search(e->head);
+                e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
+                heap.delete_element(found);
+                heap.insert(e->head->node_data.len, e->head);
+            }
+        }
+    }
+    template <typename T, typename E,
+             typename G = Graph<T, E>,
+             typename N = G::node_t,
+             typename ED = G::edge_t,
+             typename DData = G::dijkstra_data_t>
+    inline std::stack<N*> dijkstra_shortest_path_h(Graph<T, E>& graph, N* start, N* end) {
+        static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
+        static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
+
+        constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
+
+        dt::MinHeap<decltype(DData::len), N*> heap{};
+        std::stack<N*> path{};
+
+        static_cast<DData*>(&start->node_data)->len = 0;
+        heap.insert(0, start);
+        for(N& v : graph.nodes) {
+            if(&v == start) continue;
+            heap.insert(INF, &v);
+            v.node_data.in_path = false;
+        }
+        while(!heap.empty()) {
+            auto [k, w] = heap.extract();
+            w->node_data.len = k;
+            w->node_data.in_path = true;
+            for(auto e : w->edges) {
+                if(e->head->node_data.in_path) continue;
+                auto [len, found] = heap.search(e->head);
+                e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
+                heap.delete_element(found);
+                heap.insert(e->head->node_data.len, e->head);
+            }
+            path.push(w);
+            if (w == end) break;
         }
         return path;
     }
