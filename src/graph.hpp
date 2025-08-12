@@ -351,6 +351,7 @@ namespace gr {
                     edge = &e;
                 }
             }
+            if(!w) break;
             w->node_data.len = v_d->len + edge->edge_data.dijkstra_score;
             w->node_data.in_path = true;
         }
@@ -368,6 +369,11 @@ namespace gr {
 
         std::stack<N*> path{};
 
+        if(start == end){
+            path.push(start);
+            return path;
+        }
+
         static_cast<DData*>(&start->node_data)->len = 0;
         static_cast<DData*>(&start->node_data)->in_path = true;
         static_cast<DData*>(&start->node_data)->prev = nullptr;
@@ -376,6 +382,7 @@ namespace gr {
             if(&v == start) continue;
             v.node_data.len = INF;
             v.node_data.prev = nullptr;
+            v.node_data.in_path = false;
         }
         for(auto i = graph.nodes.size(); i >= 0; i--) {
             T* v_d = nullptr;
@@ -396,6 +403,9 @@ namespace gr {
                     edge = &e;
                     w->node_data.prev = e.tail;
                 }
+            }
+            if(!w){
+                return path;
             }
             w->node_data.len = v_d->len + edge->edge_data.dijkstra_score;
             w->node_data.in_path = true;
@@ -455,6 +465,11 @@ namespace gr {
 
         dt::MinHeap<decltype(DData::len), N*> heap{};
         std::stack<N*> path{};
+
+        if(start == end){
+            path.push(start);
+            return path;
+        }
 
         static_cast<DData*>(&start->node_data)->len = 0;
         heap.insert(0, start);

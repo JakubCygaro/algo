@@ -23,7 +23,7 @@ struct SCCGroupData {
     std::vector<SCCGroupData*> connections{};
 };
 
-void test_scc() {
+void test_dijkstra() {
     auto graph = gr::Graph<GraphData>();
     using node_t = gr::Graph<GraphData>::node_t;
     using edge_t = gr::Graph<GraphData>::edge_t;
@@ -136,5 +136,5 @@ int main(void) {
         // }
     // });
     for(auto i = 0; i < 100; i++)
-        test_scc();
+        test_dijkstra();
 }
