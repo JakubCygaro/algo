@@ -1,10 +1,10 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
+#include <cassert>
 #include <cstddef>
 #include <algorithm>
 #include <print>
-#undef TEST_INTERNALS
 #include <datatypes.hpp>
 #include <format>
 #include <iostream>
@@ -12,6 +12,7 @@
 #include <deque>
 #include <list>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 #include <cstdio>
 #include <stdexcept>
@@ -433,22 +434,45 @@ namespace gr {
         dt::MinHeap<decltype(DData::len), N*> heap{};
 
         static_cast<DData*>(&start->node_data)->len = 0;
+        std::unordered_map<N*, bool> ch;
+        assert(start);
+        ch[start] = true;
+        std::println("before insert");
         heap.insert(0, start);
+        std::println("after insert");
         for(N& v : graph.nodes) {
-            if(&v == start) continue;
-            heap.insert(INF, &v);
+            assert(&v && "v was null");
             v.node_data.in_path = false;
+            if(&v == start) continue;
+            v.node_data.len = INF;
+            heap.insert(INF, &v);
+            ch[&v] = true;
         }
         while(!heap.empty()) {
+            std::println("before extract");
             auto [k, w] = heap.extract();
+            std::println("after extract");
+            assert(w && "w was null");
             w->node_data.len = k;
             w->node_data.in_path = true;
             for(auto e : w->edges) {
+                assert(e->head && "head was null");
                 if(e->head->node_data.in_path) continue;
+                assert(ch[e->head]);
+                assert(!e->head->node_data.in_path && "head in path");
+                std::println("before search");
                 auto [len, found] = heap.search(e->head);
+                std::println("after search");
+                assert(found && "found was not in the heap");
                 e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
-                heap.delete_element(found);
+                std::println("before delete");
+                assert (heap.delete_element(found) && "attempted to delete element that was not found");
+                continue;
+                std::println("after delete");
+                assert(e->head && "head was null");
+                std::println("before insert");
                 heap.insert(e->head->node_data.len, e->head);
+                std::println("after insert");
             }
         }
     }

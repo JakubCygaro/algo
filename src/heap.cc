@@ -1,3 +1,4 @@
+#undef TEST_INTERNALS
 #include <algorithm>
 #include <cassert>
 #include <ctime>
@@ -5,6 +6,23 @@
 #include <functional>
 #include <vector>
 #include <common.hpp>
+
+void test_heap_duplicates(){
+    std::vector<std::tuple<int, int>> arr = {
+        {1, 1},
+        {1, 1},
+        {1, 1},
+        {1, 1},
+        {1, 1},
+    };
+    auto heap = dt::MinHeap<int, int>::heapify(arr);
+    assert(heap.delete_element(std::get<1>(heap.search(1))));
+    assert(heap.delete_element(std::get<1>(heap.search(1))));
+    assert(heap.delete_element(std::get<1>(heap.search(1))));
+    assert(heap.delete_element(std::get<1>(heap.search(1))));
+    assert(heap.delete_element(std::get<1>(heap.search(1))));
+    assert(heap.empty());
+}
 
 void heapify_with_search_and_delete() {
     auto const size = common::get_random_in_range(1, 100);
@@ -23,9 +41,47 @@ void heapify_with_search_and_delete() {
     }
     for(auto i = 0; i < size; i++){
         if(common::get_random_in_range(1, 100) < 50){
-            assert(heap.delete_element(std::get<1>(heap.search(std::get<1>(arr[i])))) && "failed to delete element");
+            auto [k, v] = heap.search(std::get<1>(arr[i]));
+            assert(heap.delete_element(v) && "failed to delete element");
         }
     }
+
+    heap = dt::MinHeap<int, int>::heapify(arr);
+    // heap.debug_print();
+    for(auto i = 0; i < size; i++){
+        auto [k, v] = heap.search(std::get<1>(arr[i]));
+        if(!v){
+            std::println("arr[i] = {}", arr[i]);
+            std::println("{}", arr);
+            heap.debug_print();
+        }
+        assert(v != nullptr && "inserted value not found in heap");
+        assert(heap.delete_element(v) && "failed to delete element");
+    }
+    assert(heap.empty());
+    heap = decltype(heap)::heapify(arr);
+    for(auto i = size - 1; i >= 0; i--){
+        auto [k, v] = heap.search(std::get<1>(arr[i]));
+        assert(v != nullptr && "inserted value not found in heap");
+        assert(heap.delete_element(v) && "failed to delete element");
+    }
+    assert(heap.empty());
+
+    heap = decltype(heap)();
+    for(auto i = size - 1; i >= 0; i--){
+        auto [k, v] = arr[i];
+        heap.insert(k, v);
+    }
+    // heap.debug_print();
+    assert(heap.size() == arr.size());
+    for(auto i = size - 1; i >= 0; i--){
+        auto [k, v] = heap.search(std::get<1>(arr[i]));
+        assert(v != nullptr && "inserted value not found in heap");
+        assert(*v == std::get<1>(arr[i]) && "found value is different than what was inserted");
+        assert(k == std::get<0>(arr[i]) && "key was different");
+        assert(heap.delete_element(v) && "failed to delete element");
+    }
+    assert(heap.empty());
 }
 
 void validate_max(std::vector<int>& arr){
@@ -71,6 +127,7 @@ int main(void) {
         heap_sort_max(input);
         validate_max(input);
     }
-    for(auto i = 0; i < 100; i++ )
+    for(auto i = 0; i < 1000; i++ )
         heapify_with_search_and_delete();
+    test_heap_duplicates();
 }

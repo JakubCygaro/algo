@@ -3,6 +3,7 @@
 #include <iostream>
 #include <format>
 #include <print>
+#include <unordered_map>
 
 struct EdgeData : public gr::DijkstraEdge {
     EdgeData(decltype(gr::DijkstraEdge::dijkstra_score) s) : gr::DijkstraEdge(s) {}
@@ -94,6 +95,16 @@ void test_dijkstra() {
             }
         }
     }
+    std::unordered_map<node_t*, bool> check{};
+    for(auto& node : graph.nodes) {
+        check[&node] = true;
+    }
+    for(auto& node : graph.nodes) {
+        for(auto& edge : node.edges) {
+            assert(check[edge->head]);
+            assert(check[edge->tail]);
+        }
+    }
     //select random node as the start of the path
     auto start_i = common::get_random_in_range(0, graph.nodes.size() - 1);
     node_t* start = nullptr;
@@ -120,31 +131,38 @@ void test_dijkstra() {
         }
     }
     node_t* end = path.top();
+    //
+    // std::println("path");
+    // while(!path.empty()){
+    //     auto x = path.top();
+    //     path.pop();
+    //     std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
+    // }
+    // std::println();
 
-    std::println("path");
-    while(!path.empty()){
-        auto x = path.top();
-        path.pop();
-        std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
-    }
+    // gr::dijkstra(graph, start);
+    // std::ranges::for_each(graph.nodes, [&](node_t& n){
+    //     std::println("{} [ {} ]", n.node_data.name, n.node_data.len);
+    // });
     std::println();
 
-    gr::dijkstra(graph, start);
-    std::ranges::for_each(graph.nodes, [&](node_t& n){
-        std::println("{} [ {} ]", n.node_data.name, n.node_data.len);
-    });
+    // auto d_path = gr::dijkstra_shortest_path(graph, start, end);
+    // std::println("d_path");
+    // while(!d_path.empty()){
+    //     auto x = d_path.top();
+    //     d_path.pop();
+    //     assert(x && "x was null");
+    //     std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
+    // }
+    // std::println();
+
+    // gr::dijkstra_h(graph, start);
+    // std::ranges::for_each(graph.nodes, [&](node_t& n){
+    //     std::println("{} [ {} ]", n.node_data.name, n.node_data.len);
+    // });
     std::println();
 
-    auto d_path = gr::dijkstra_shortest_path(graph, start, end);
-    std::println("d_path");
-    while(!d_path.empty()){
-        auto x = d_path.top();
-        d_path.pop();
-        std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
-    }
-    std::println();
-
-    d_path = gr::dijkstra_shortest_path_h(graph, start, end);
+    auto d_path = gr::dijkstra_shortest_path_h(graph, start, end);
     std::println("d_path");
     while(!d_path.empty()){
         auto x = d_path.top();
@@ -193,5 +211,5 @@ int main(void) {
     //     path.pop();
     //     std::cout << std::format("{} [ {} ] ", v->node_data.name, v->node_data.len) << std::endl;
     // }
-    test_dijkstra();
+    // test_dijkstra();
 }
