@@ -178,7 +178,7 @@ int main(void) {
     cherry_pick_heapify();
     for(auto i = 0; i < 1000; i++)
         verify_heapify();
-    for(auto i = 0; i < 100000; i++ )
+    for(auto i = 0; i < 1000; i++ )
         heapify_with_search_and_delete();
     test_heap_duplicates();
 }

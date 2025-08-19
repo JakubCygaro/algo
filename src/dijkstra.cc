@@ -2,6 +2,7 @@
 #include <common.hpp>
 #include <iostream>
 #include <format>
+#include <ostream>
 #include <print>
 #include <unordered_map>
 
@@ -24,7 +25,7 @@ struct SCCGroupData {
     std::vector<SCCGroupData*> connections{};
 };
 
-void test_dijkstra() {
+void test_dijkstra(bool broken = false) {
     auto graph = gr::Graph<NodeData, EdgeData>();
     using node_t = decltype(graph)::node_t;
     using edge_t = decltype(graph)::edge_t;
@@ -111,105 +112,101 @@ void test_dijkstra() {
     for (auto it = graph.nodes.begin(); start_i >= 0; start_i--){
         start = &(*it);
     }
-    std::stack<node_t*> path{};
+    std::vector<node_t*> path{};
     node_t* v = start;
-    while(v){
-        //push the node to the path stack
-        path.push(v);
-        //mark as explored
-        v->node_data.explored = true;
-        for(edge_t* e : v->edges){
-            //random walk through the connected nodes
-            if(common::get_random_in_range(1, 100) <= 80 && !e->head->node_data.explored) {
-                //set a small dijkstra score for the connecting edge so it is included in the path
-                e->edge_data.dijkstra_score = common::get_random_in_range(1, 10);
-                v = e->head;
-                break;
-            } else {
-                v = nullptr;
+    node_t* end;
+    start->node_data.name = 'S';
+    std::println("pathgen");
+    if(broken){
+        std::println("broken path variant");
+        start = groups.front().nodes.front();
+        path.push_back(start);
+        end = groups.back().nodes.back();
+        path.push_back(end);
+    } else {
+        while(v){
+            //push the node to the path stack
+            path.push_back(v);
+            //mark as explored
+            v->node_data.explored = true;
+            if(v->edges.empty()) break;
+            for(edge_t* e : v->edges){
+                //random walk through the connected nodes
+                if(common::get_random_in_range(1, 100) <= 80 && !e->head->node_data.explored) {
+                    //set a small dijkstra score for the connecting edge so it is included in the path
+                    e->edge_data.dijkstra_score = common::get_random_in_range(1, 10);
+                    v = e->head;
+                    break;
+                } else {
+                    v = nullptr;
+                }
             }
         }
+        end = path.back();
     }
-    node_t* end = path.top();
+    end->node_data.name = 'X';
 
     std::println("path");
-    while(!path.empty()){
-        auto x = path.top();
-        path.pop();
+    for(auto x : path){
         std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
     }
     std::println();
 
+    std::println("dijkstra");
     gr::dijkstra(graph, start);
     std::ranges::for_each(graph.nodes, [&](node_t& n){
         std::println("{} [ {} ]", n.node_data.name, n.node_data.len);
     });
     std::println();
+    auto dijkstra_backup = graph.nodes;
 
-    auto d_path = gr::dijkstra_shortest_path(graph, start, end);
-    std::println("d_path");
-    while(!d_path.empty()){
-        auto x = d_path.top();
-        d_path.pop();
-        assert(x && "x was null");
+    std::println("dijkstra_shortest_path");
+    auto d_sh_p = gr::dijkstra_shortest_path(graph, start, end);
+    for(auto x : d_sh_p){
         std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
     }
     std::println();
 
+    std::println("dijkstra_h");
+    std::flush(std::cout);
     gr::dijkstra_h(graph, start);
     std::ranges::for_each(graph.nodes, [&](node_t& n){
         std::println("{} [ {} ]", n.node_data.name, n.node_data.len);
     });
     std::println();
+    std::flush(std::cout);
+    auto dijkstra_h_backup = graph.nodes;
 
-    d_path = gr::dijkstra_shortest_path_h(graph, start, end);
-    std::println("dh_path");
-    while(!d_path.empty()){
-        auto x = d_path.top();
-        d_path.pop();
+    auto d_it = dijkstra_backup.begin();
+    auto d_h_it = dijkstra_h_backup.begin();
+    for(; d_it != dijkstra_backup.end() && d_h_it != dijkstra_h_backup.end() && !broken;){
+        assert(d_it->node_data.len == d_h_it->node_data.len && "differing results");
+        d_it++;
+        d_h_it++;
+    }
+
+    std::println("dijkstra_shortest_path_h");
+    auto d_sh_p_h = gr::dijkstra_shortest_path_h(graph, start, end);
+    for(auto x : d_sh_p_h){
         std::cout << std::format("{} [ {} ] ", x->node_data.name, x->node_data.len) << std::endl;
     }
     std::println();
+    std::flush(std::cout);
+
+    if(broken && path.size() != 1){
+        assert(d_sh_p.size() == 0 && "dijkstra_shortest_path was not empty for broken path variant");
+        assert(d_sh_p_h.size() == 0 && "dijkstra_shortest_path_h was not empty for broken path variant");
+        return;
+    }
+    std::ranges::reverse(path);
+    for(std::size_t i = 0; i < path.size(); i++){
+        assert(path[i] == d_sh_p[i] && "dijkstra_shortest_path incorrect");
+        assert(path[i] == d_sh_p_h[i] && "dijkstra_shortest_path_h incorrect");
+    }
+
 }
 
 int main(void) {
-    // using graph_t = gr::Graph<NodeData, EdgeData>;
-    // using mat_t = graph_t::vmatrix_e;
-    //
-    // mat_t mtx = {{
-    //     {'s', { {0, {}}, {1, 1}, {1, 6}, {0, {}}, {0, {}} }},
-    //     {'v', { {0, {}}, {0, {}}, {1, 2}, {1, 8}, {1, 10} }},
-    //     {'t', { {0, {}}, {0, {}}, {0, {}}, {0, {}}, {1, 3} }},
-    //     {'x', { {0, {}}, {0, {}}, {0, {}}, {0, {}}, {0, {}} }},
-    //     {'w', { {0, {}}, {0, {}}, {0, {}}, {1, 3}, {0, {}} }},
-    // }};
-    //
-    // graph_t graph = graph_t::from_matrix(mtx);
-    // auto start = &graph.nodes.front();
-    // auto end = &graph.nodes.back();
-    // std::cout << std::format(" start: {}, end: {}", start->node_data.name, end->node_data.name) << std::endl;
-    // auto path = gr::dijkstra_shortest_path<NodeData, EdgeData>(graph, start, end);
-    // while(!path.empty()) {
-    //     auto v = path.top();
-    //     path.pop();
-    //     std::cout << std::format("{} [ {} ] ", v->node_data.name, v->node_data.len) << std::endl;
-    // }
-    // std::println();
-    // gr::dijkstra(graph, start);
-    // for(auto& node : graph.nodes) {
-    //     std::println("{} [ {} ]", node.node_data.name, node.node_data.len);
-    // }
-    // gr::dijkstra_h<NodeData, EdgeData>(graph, start);
-    // std::println();
-    // for(auto& node : graph.nodes) {
-    //     std::println("{} [ {} ]", node.node_data.name, node.node_data.len);
-    // }
-    // path = gr::dijkstra_shortest_path_h<NodeData, EdgeData>(graph, start, end);
-    // std::println();
-    // while(!path.empty()) {
-    //     auto v = path.top();
-    //     path.pop();
-    //     std::cout << std::format("{} [ {} ] ", v->node_data.name, v->node_data.len) << std::endl;
-    // }
     test_dijkstra();
+    // test_dijkstra(true);
 }

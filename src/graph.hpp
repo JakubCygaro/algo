@@ -362,16 +362,16 @@ namespace gr {
              typename N = G::node_t,
              typename ED = G::edge_t,
              typename DData = G::DijkstraData>
-    inline const std::stack<N*> dijkstra_shortest_path(Graph<T, E>& graph, N* start, N* end) {
+    inline const std::vector<N*> dijkstra_shortest_path(Graph<T, E>& graph, N* start, N* end) {
         static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
         static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
 
         constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
 
-        std::stack<N*> path{};
+        std::vector<N*> path{};
 
         if(start == end){
-            path.push(start);
+            path.push_back(start);
             return path;
         }
 
@@ -412,12 +412,13 @@ namespace gr {
             w->node_data.in_path = true;
             if(w == end) {
                 while(w) {
-                    path.push(w);
+                    path.push_back(w);
                     w = w->node_data.prev;
                 }
                 break;
             };
         }
+        // std::reverse(path.begin(), path.end());
         return path;
     }
     template <typename T, typename E,
@@ -433,46 +434,31 @@ namespace gr {
 
         dt::MinHeap<decltype(DData::len), N*> heap{};
 
-        static_cast<DData*>(&start->node_data)->len = 0;
-        std::unordered_map<N*, bool> ch;
         assert(start);
-        ch[start] = true;
-        std::println("before insert");
+        static_cast<DData*>(&start->node_data)->len = 0;
         heap.insert(0, start);
-        std::println("after insert");
         for(N& v : graph.nodes) {
-            assert(&v && "v was null");
             v.node_data.in_path = false;
             if(&v == start) continue;
             v.node_data.len = INF;
             heap.insert(INF, &v);
-            ch[&v] = true;
         }
         while(!heap.empty()) {
-            std::println("before extract");
             auto [k, w] = heap.extract();
-            std::println("after extract");
             assert(w && "w was null");
             w->node_data.len = k;
             w->node_data.in_path = true;
             for(auto e : w->edges) {
                 assert(e->head && "head was null");
                 if(e->head->node_data.in_path) continue;
-                assert(ch[e->head]);
                 assert(!e->head->node_data.in_path && "head in path");
-                std::println("before search");
                 auto [len, found] = heap.search(e->head);
-                std::println("after search");
                 assert(found && "found was not in the heap");
+                if(w->node_data.len == INF) continue;
                 e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
-                std::println("before delete");
                 assert (heap.delete_element(found) && "attempted to delete element that was not found");
-                continue;
-                std::println("after delete");
                 assert(e->head && "head was null");
-                std::println("before insert");
                 heap.insert(e->head->node_data.len, e->head);
-                std::println("after insert");
             }
         }
     }
@@ -481,17 +467,17 @@ namespace gr {
              typename N = G::node_t,
              typename ED = G::edge_t,
              typename DData = G::dijkstra_data_t>
-    inline std::stack<N*> dijkstra_shortest_path_h(Graph<T, E>& graph, N* start, N* end) {
+    inline std::vector<N*> dijkstra_shortest_path_h(Graph<T, E>& graph, N* start, N* end) {
         static_assert(std::is_convertible<T*, DData*>::value, "T must be derived from DijkstraData");
         static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from DijkstraEdge");
 
         constexpr auto INF = std::numeric_limits<decltype(DData::len)>::max();
 
         dt::MinHeap<decltype(DData::len), N*> heap{};
-        std::stack<N*> path{};
+        std::vector<N*> path{};
 
         if(start == end){
-            path.push(start);
+            path.push_back(start);
             return path;
         }
 
@@ -502,6 +488,7 @@ namespace gr {
             heap.insert(INF, &v);
             v.node_data.in_path = false;
         }
+        N* prev = nullptr;
         while(!heap.empty()) {
             auto [k, w] = heap.extract();
             w->node_data.len = k;
@@ -509,12 +496,21 @@ namespace gr {
             for(auto e : w->edges) {
                 if(e->head->node_data.in_path) continue;
                 auto [len, found] = heap.search(e->head);
+                if(w->node_data.len == INF) continue;
                 e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
                 heap.delete_element(found);
                 heap.insert(e->head->node_data.len, e->head);
             }
-            path.push(w);
+            w->node_data.prev = prev;
+            // path.push_back(w);
+            if(w->node_data.len != INF)
+                prev = w;
             if (w == end) break;
+        }
+        if(prev != end) return path;
+        while(prev){
+            path.push_back(prev);
+            prev = prev->node_data.prev;
         }
         return path;
     }
