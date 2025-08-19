@@ -9,7 +9,9 @@ target_compile_features(cpp_std_23 INTERFACE cxx_std_23)
 target_compile_options(cpp_std_23
     INTERFACE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra>
 )
-add_compile_definitions($<$<CONFIG:Testing>:TEST_INTERNALS>)
+target_compile_definitions(cpp_std_23
+    INTERFACE $<$<CONFIG:Testing>:-DTEST_INTERNALS>
+)
 
 add_executable(merge src/merge.cc)
 target_link_libraries(merge PRIVATE cpp_std_23)
