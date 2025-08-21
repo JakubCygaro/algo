@@ -434,7 +434,6 @@ namespace gr {
 
         dt::MinHeap<decltype(DData::len), N*> heap{};
 
-        assert(start);
         static_cast<DData*>(&start->node_data)->len = 0;
         heap.insert(0, start);
         for(N& v : graph.nodes) {
@@ -476,17 +475,19 @@ namespace gr {
         dt::MinHeap<decltype(DData::len), N*> heap{};
         std::vector<N*> path{};
 
+        static_cast<DData*>(&start->node_data)->len = 0;
         if(start == end){
             path.push_back(start);
             return path;
         }
 
-        static_cast<DData*>(&start->node_data)->len = 0;
         heap.insert(0, start);
         for(N& v : graph.nodes) {
-            if(&v == start) continue;
-            heap.insert(INF, &v);
             v.node_data.in_path = false;
+            v.node_data.prev = nullptr;
+            if(&v == start) continue;
+            v.node_data.len = INF;
+            heap.insert(INF, &v);
         }
         N* prev = nullptr;
         while(!heap.empty()) {
@@ -494,15 +495,14 @@ namespace gr {
             w->node_data.len = k;
             w->node_data.in_path = true;
             for(auto e : w->edges) {
+                if(w->node_data.len == INF) break;
                 if(e->head->node_data.in_path) continue;
                 auto [len, found] = heap.search(e->head);
-                if(w->node_data.len == INF) continue;
                 e->head->node_data.len = std::min(len, w->node_data.len + e->edge_data.dijkstra_score);
                 heap.delete_element(found);
                 heap.insert(e->head->node_data.len, e->head);
             }
             w->node_data.prev = prev;
-            // path.push_back(w);
             if(w->node_data.len != INF)
                 prev = w;
             if (w == end) break;

@@ -6,7 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <print>
 #include <tuple>
 #include <vector>
 
@@ -146,14 +145,12 @@ namespace dt {
                 }
             }
             if(!found) return found;
-//            std::println("i: {} m_size: {} m_cap: {}", i, m_size, m_cap);
             std::swap(m_data[i], m_data[--m_size]);
 
             m_data[m_size] = {{}, {}};
 
             if(i == m_size) return found;
 
-//            // std::println("delete begin shifting");
             while(auto j = shift_up(i)){
                 i = j.value();
             }
@@ -161,7 +158,7 @@ namespace dt {
                 i = j.value();
             }
             if (m_size < (m_cap / 2)) {
-                // shrink();
+                shrink();
             }
 #ifdef TEST_INTERNALS
             verify_heap_property();
@@ -182,8 +179,6 @@ namespace dt {
         }
         /// if a shift up has occured, return the new position of i
         inline std::optional<std::size_t> shift_up(std::size_t i) {
-//            // std::println("size: {} shift_up: {}", m_size, i);
-            // assert(i < m_size);
             if(auto p = parent(i); p.has_value() && CompareFunc(m_data[i].key, m_data[p.value()].key)) {
                 std::swap(m_data[i], m_data[p.value()]);
                 return p.value();
@@ -211,7 +206,6 @@ namespace dt {
         }
     private:
         inline void heapify_impl(){
-//            // std::println("heapify_impl");
             for(auto i = m_size - 1; i != 0; i--){
                 if(auto p = parent(i); p.has_value()){
                     while(auto j = shift_down(p.value())) {
@@ -232,7 +226,6 @@ namespace dt {
 #endif
     public:
         inline static Heap<Key, T, CompareFunc> heapify(const std::vector<std::tuple<Key, T>>& arr){
-//            // std::println("heapify");
             Heap<Key, T, CompareFunc> heap(arr.size());
             std::size_t i = 0;
             std::for_each(arr.begin(), arr.end(), [&](auto v){
@@ -243,7 +236,6 @@ namespace dt {
             return heap;
         }
         inline static Heap<Key, T, CompareFunc> heapify(const std::vector<Key>& arr){
-//            // std::println("heapify");
             Heap<Key, T, CompareFunc> heap(arr.size());
             heap.m_size = arr.size();
             std::size_t i = 0;
@@ -254,18 +246,12 @@ namespace dt {
             return heap;
         }
         inline void debug_print() {
-//            // std::print("Heap::debug_print() ");
-            for(auto i = 0; i < m_size; i++){
-//                std::print("({}, {}) ", m_data[i].key, m_data[i].value);
+            for(std::size_t i = 0; i < m_size; i++){
             }
-//            std::println();
         }
         inline void debug_print_full() {
-//            // std::print("Heap::debug_print() ");
-            for(auto i = 0; i < m_cap; i++){
-//                std::print("({}, {}) ", m_data[i].key, m_data[i].value);
+            for(std::size_t i = 0; i < m_cap; i++){
             }
-//            std::println();
         }
     };
     template <typename Key, typename T>
