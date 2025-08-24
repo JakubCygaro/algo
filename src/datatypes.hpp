@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <tuple>
 #include <vector>
 
@@ -258,5 +259,196 @@ namespace dt {
     using MinHeap = Heap<Key, T, a_less_b_fn<Key>>;
     template <typename Key, typename T>
     using MaxHeap = Heap<Key, T, a_more_b_fn<Key>>;
+
+    template <typename K, typename T>
+    class RBTree {
+    private:
+        struct Node {
+            K key{};
+            T data{};
+            Node* parent{};
+            Node* left{}; //smaller
+            Node* right{}; //larger
+        };
+
+        Node* m_root{};
+        std::size_t m_size{};
+
+    public:
+        RBTree(){
+
+        }
+        ~RBTree(){
+            std::function<void(Node*)> delete_fn = [&](Node* n){
+                if(n){
+                    delete_fn(n->left);
+                    delete_fn(n->right);
+                    delete n;
+                }
+            };
+            delete_fn(m_root);
+        }
+    private:
+        Node* search_impl(const K& key) const {
+            auto node = m_root;
+            while(node){
+                if(node->key == key){
+                    return node;
+                } else if(key > node->key){
+                    node = node->right;
+                } else {
+                    node = node->left;
+                }
+            }
+            return nullptr;
+        }
+        Node* min_impl(Node* root) const{
+            auto node = root;
+            while(node){
+                if(node->left)
+                    node = node->left;
+                else
+                    break;
+            }
+            return node;
+        }
+        Node* max_impl(Node* root) const {
+            auto node = root;
+            while(node){
+                if(node->right)
+                    node = node->right;
+                else
+                    break;
+            }
+            return node;
+        }
+        void output_sorted_impl(std::size_t& i, auto& v, Node* n){
+            if(n){
+                output_sorted_impl(i, v, n->left);
+                v[i++] = { n->key, n->data };
+                output_sorted_impl(i, v, n->right);
+            }
+        }
+    public:
+        bool insert(const K& key, T&& item){
+            Node* prev = nullptr;
+            Node** node = &m_root;
+
+            while(*node){
+                if(key > (*node)->key){
+                    prev = *node;
+                    node = &((*node)->right);
+                } else if(key < (*node)->data){
+                    prev = *node;
+                    node = &((*node)->left);
+                } else {
+                    return false;
+                }
+            }
+            *node = new Node;
+            (*node)->key = key;
+            (*node)->data = item;
+            (*node)->parent = prev;
+            m_size++;
+            return true;
+        }
+        T* search(const K key) const {
+            auto found = search_impl(key);
+            if(found){
+                return &found->data;
+            } else {
+                return nullptr;
+            }
+        }
+        std::tuple<K, T*> min() const {
+            auto node = min_impl(m_root);
+            if(node){
+                return { node->key, &node->data };
+            } else {
+                return { {}, {} };
+            }
+        }
+        std::tuple<K, T*> max() const {
+            auto node = max_impl(m_root);
+            if(node){
+                return { node->key, &node->data };
+            } else {
+                return { {}, {} };
+            }
+        }
+        std::tuple<K, T*> predecessor(const K& key) const {
+            auto node = search_impl(key);
+            if(!node) return {};
+
+            auto left_child = max_impl(node->left);
+            if(left_child) return { left_child->key, &left_child->data };
+
+            auto parent = node->parent;
+
+            while (parent){
+                if(parent->key < key)
+                    return { parent->key, &parent->data };
+                else
+                    parent = parent->parent;
+            }
+            return {};
+        }
+        std::tuple<K, T*> successor(const K& key) const {
+            auto node = search_impl(key);
+            if(!node) return {};
+
+            auto right_child = min_impl(node->right);
+            if(right_child) return { right_child->key, &right_child->data };
+
+            auto parent = node->parent;
+
+            while (parent){
+                if(parent->key > key)
+                    return { parent->key, &parent->data };
+                else
+                    parent = parent->parent;
+            }
+            return {};
+        }
+        std::vector<std::tuple<K, T>> output_sorted() {
+            std::vector<std::tuple<K, T>> ret(m_size);
+            std::size_t i = 0;
+            output_sorted_impl(i, ret, m_root);
+            return ret;
+        }
+        bool delete_element(const K& key){
+            auto node = search_impl(key);
+            if(!node) return false;
+
+            Node** rel_to_parent;
+            auto parent = node->parent;
+            if(!parent){
+
+            }
+            if(node->key < parent->key)
+                rel_to_parent = &parent->left;
+            else
+                rel_to_parent = parent->right;
+            //is leaf
+            if(!node->right && !node->left) {
+                rel_to_parent = nullptr;
+            }
+            else if (node->right && !node->left){
+                rel_to_parent = node->right;
+                node->right->parent = parent;
+            }
+            else if (node->left && !node->right){
+                auto parent = node->parent;
+                if(node->key < parent->key)
+                    parent->left = node->left;
+                else
+                    parent->right = node->left;
+                node->left->parent = parent;
+            }
+            delete node;
+            m_size--;
+            return true;
+        }
+    };
 }
 #endif

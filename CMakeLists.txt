@@ -52,3 +52,7 @@ add_test(NAME heap COMMAND heap)
 add_executable(inplace_heap_sort src/inplace_heap_sort.cc)
 target_link_libraries(inplace_heap_sort PRIVATE cpp_std_23)
 add_test(NAME inplace_heap_sort COMMAND inplace_heap_sort)
+
+add_executable(tree src/tree.cc)
+target_link_libraries(tree PRIVATE cpp_std_23)
+add_test(NAME tree COMMAND tree)
