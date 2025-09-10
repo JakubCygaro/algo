@@ -474,8 +474,7 @@ start:
                 // make the parent forget me
                 if(parent){
                     *child_from_parent = nullptr;
-                    parent->size--;
-                    dec_size(parent);
+                    // dec_size(node);
                 } else if (node == m_root){
                     m_root = nullptr;
                 }
@@ -489,14 +488,14 @@ start:
                 node->key = tmp_k;
                 node->data = tmp_d;
                 // node->size--;
-                dec_size(n);
                 node = n;
+                // dec_size(node);
                 goto start; //lets get sloppy
             } // only has left child
             else if(node->left){
                 if(parent){
                     *child_from_parent = node->left;
-                    dec_size(parent);
+                    // dec_size(node);
                     (*child_from_parent)->parent = parent;
                 } else {
                     m_root = node->left;
@@ -507,7 +506,7 @@ start:
             else if(node->right){
                 if(parent){
                     *child_from_parent = node->right;
-                    dec_size(parent);
+                    // dec_size(node);
                     (*child_from_parent)->parent = parent;
                 } else {
                     m_root = node->right;
@@ -519,6 +518,7 @@ start:
             else {
                 return false;
             }
+            dec_size(node);
             delete node;
             m_size--;
             return true;

@@ -15,8 +15,14 @@ void test_select(){
     dt::RBTree<int, int> tree;
     std::ranges::shuffle(arr, std::mt19937 { std::random_device {}() });
     std::ranges::for_each(arr, [&](auto v){ tree.insert(v, std::move(v)); });
+    i = common::get_random_in_range(size / 2, size - 2);
+    for(auto j = i; j < size; j++){
+        assert(tree.delete_element(arr[j]));
+    }
+    arr.erase(arr.begin() + i, arr.end());
     std::ranges::sort(arr);
-    for(auto i = 0; i < size; i++){
+
+    for(size_t i = 0; i < arr.size(); i++){
         auto [k, v] = tree.select(i);
         if(!v) continue;
         assert(k == arr[i]);
@@ -117,31 +123,6 @@ void test_search_and_output_sorted(){
     }
 }
 int main(void){
-    // std::vector<int> v(15);
-    // auto i = 100;
-    // std::ranges::for_each(v, [&](auto& v) { v = i++; });
-    // dt::RBTree<int, int> tree;
-    // std::ranges::shuffle(v, std::mt19937 { std::random_device {}() });
-    // std::ranges::for_each(v, [&](auto v){ tree.insert(v, std::move(v)); });
-    // // tree.insert(1, 100);
-    // // tree.insert(2, 101);
-    // // tree.insert(3, 102);
-    // std::cout << *tree.search(102) << std::endl;
-    // std::cout << *std::get<1>(tree.min()) << std::endl;
-    // std::cout << *std::get<1>(tree.max()) << std::endl;
-    //
-    // tree.delete_element(102);
-    //
-    // for(auto i = 1; i <= 15; i++){
-    //     auto [k, n] = tree.select(i);
-    //     if(n){
-    //         std::println("( {}, {} )", k, *n);
-    //     }
-    // }
-    //
-    // auto sorted = tree.output_sorted();
-    //
-    // std::println("{}", sorted);
 
     for(auto i = 0; i < 100; i++){
         test_search_and_output_sorted();
