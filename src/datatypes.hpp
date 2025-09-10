@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <print>
 #include <tuple>
 #include <vector>
 
@@ -266,6 +267,7 @@ namespace dt {
         struct Node {
             K key{};
             T data{};
+            std::size_t size{1};
             Node* parent{};
             Node* left{}; //smaller
             Node* right{}; //larger
@@ -349,8 +351,17 @@ namespace dt {
             (*node)->key = key;
             (*node)->data = item;
             (*node)->parent = prev;
+            if(prev){
+                prev->size++;
+            }
             m_size++;
             return true;
+        }
+        std::size_t size() const {
+            return m_size;
+        }
+        bool empty() const {
+            return m_size == 0;
         }
         T* search(const K key) const {
             auto found = search_impl(key);
@@ -376,6 +387,25 @@ namespace dt {
                 return { {}, {} };
             }
         }
+    private:
+        Node* predecessor_node(const Node* node) const {
+            if(!node) return nullptr;
+            auto key = node->key;
+
+            auto left_child = max_impl(node->left);
+            if(left_child) return left_child;
+
+            auto parent = node->parent;
+
+            while (parent){
+                if(parent->key < key)
+                    return parent;
+                else
+                    parent = parent->parent;
+            }
+            return nullptr;
+        }
+    public:
         std::tuple<K, T*> predecessor(const K& key) const {
             auto node = search_impl(key);
             if(!node) return {};
@@ -419,36 +449,117 @@ namespace dt {
         bool delete_element(const K& key){
             auto node = search_impl(key);
             if(!node) return false;
-
-            Node** rel_to_parent;
+start:
             auto parent = node->parent;
-            if(!parent){
+            // pointer to the pointer of the parent to this node
+            Node** child_from_parent = nullptr;
+            if(parent){
+                child_from_parent = parent->left == node ? &parent->left : &parent->right;
+            }
+            // is leaf
+            if(!node->left && !node->right){
+                // make the parent forget me
+                if(parent){
+                    *child_from_parent = nullptr;
+                    parent->size--;
+                } else if (node == m_root){
+                    m_root = nullptr;
+                }
+            } // two children case
+            else if(node->left && node->right){
+                auto n = predecessor_node(node);
+                K tmp_k = n->key;
+                T tmp_d = n->data;
+                n->key = node->key;
+                n->data = node->data;
+                node->key = tmp_k;
+                node->data = tmp_d;
+                node->size--;
+                node = n;
+                goto start; //lets get sloppy
+            } // only has left child
+            else if(node->left){
+                if(parent){
+                    *child_from_parent = node->left;
+                    parent->size--;
+                    (*child_from_parent)->parent = parent;
+                } else {
+                    m_root = node->left;
+                    m_root->parent = nullptr;
+                    m_root->size--;
+                }
+            } // only has right child
+            else if(node->right){
+                if(parent){
+                    *child_from_parent = node->right;
+                    parent->size--;
+                    (*child_from_parent)->parent = parent;
+                } else {
+                    m_root = node->right;
+                    m_root->parent = nullptr;
+                    m_root->size--;
+                }
 
             }
-            if(node->key < parent->key)
-                rel_to_parent = &parent->left;
-            else
-                rel_to_parent = parent->right;
-            //is leaf
-            if(!node->right && !node->left) {
-                rel_to_parent = nullptr;
-            }
-            else if (node->right && !node->left){
-                rel_to_parent = node->right;
-                node->right->parent = parent;
-            }
-            else if (node->left && !node->right){
-                auto parent = node->parent;
-                if(node->key < parent->key)
-                    parent->left = node->left;
-                else
-                    parent->right = node->left;
-                node->left->parent = parent;
+            else {
+                return false;
             }
             delete node;
             m_size--;
             return true;
         }
+        std::tuple<K, T*> select(std::size_t i){
+            if(i > m_size) return {};
+            auto node = m_root;
+            auto j = node->left ? node->left->size : 0;
+
+            while(node){
+
+                if(i == j + 1) return { node->key, &node->data };
+                else if(i < j + 1){
+                    node = node->left;
+                }
+                else if(i > j + 1){
+                    i = i - j - 1;
+                    node = node->right;
+                }
+            }
+            return {};
+        }
+    private:
+        bool rotate_right(Node* node_x){
+            if(!node_x->left) return false;
+
+            auto node_y = node_x->left;
+
+            node_y->parent = node_x->parent;
+
+            Node** child_ptr = node_y->parent->key < node_y->key ? &node_y->parent->right : &node_y->parent->left;
+            *child_ptr = node_y;
+
+            node_x->left = node_y->right;
+            node_y->right->parent = node_x;
+
+            node_x->parent = node_y;
+            node_y->right = node_x;
+        }
+        bool rotate_left(Node* node_x){
+            if(!node_x->right) return false;
+
+            auto node_y = node_x->right;
+
+            node_y->parent = node_x->parent;
+
+            Node** child_ptr = node_y->parent->key < node_y->key ? &node_y->parent->right : &node_y->parent->left;
+            *child_ptr = node_y;
+
+            node_x->right = node_y->left;
+            node_y->left->parent = node_x;
+
+            node_x->parent = node_y;
+            node_y->left = node_x;
+        }
+    public:
     };
 }
 #endif
