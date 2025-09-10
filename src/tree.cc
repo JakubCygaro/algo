@@ -4,6 +4,44 @@
 #include <print>
 #include "common.hpp"
 
+void test_select(){
+    const auto size = common::get_random_in_range(5, 50);
+    std::vector<int> arr(size);
+    auto i = common::get_random_in_range(-1000, 1000);
+    std::ranges::for_each(arr, [&](auto& v) {
+            v = i;
+            i += common::get_random_in_range(1, 50);
+        });
+    dt::RBTree<int, int> tree;
+    std::ranges::shuffle(arr, std::mt19937 { std::random_device {}() });
+    std::ranges::for_each(arr, [&](auto v){ tree.insert(v, std::move(v)); });
+    std::ranges::sort(arr);
+    for(auto i = 0; i < size; i++){
+        auto [k, v] = tree.select(i);
+        if(!v) continue;
+        assert(k == arr[i]);
+    }
+}
+
+void test_min_max(){
+    const auto size = common::get_random_in_range(5, 50);
+    std::vector<int> arr(size);
+    auto i = common::get_random_in_range(-1000, 1000);
+    std::ranges::for_each(arr, [&](auto& v) {
+            v = i;
+            i += common::get_random_in_range(1, 50);
+        });
+    dt::RBTree<int, int> tree;
+    std::ranges::shuffle(arr, std::mt19937 { std::random_device {}() });
+    std::ranges::for_each(arr, [&](auto v){ tree.insert(v, std::move(v)); });
+    std::ranges::sort(arr);
+
+    auto [min_k, min_v] = tree.min();
+    assert(min_k == *min_v && *min_v == arr[0]);
+
+    auto [max_k, max_v] = tree.max();
+    assert(max_k == *max_v && *max_v == arr.back());
+}
 void test_search_and_delete(){
     const auto size = common::get_random_in_range(5, 50);
     std::vector<int> arr(size);
@@ -83,6 +121,7 @@ int main(void){
     // auto i = 100;
     // std::ranges::for_each(v, [&](auto& v) { v = i++; });
     // dt::RBTree<int, int> tree;
+    // std::ranges::shuffle(v, std::mt19937 { std::random_device {}() });
     // std::ranges::for_each(v, [&](auto v){ tree.insert(v, std::move(v)); });
     // // tree.insert(1, 100);
     // // tree.insert(2, 101);
@@ -93,9 +132,11 @@ int main(void){
     //
     // tree.delete_element(102);
     //
-    // auto [k, n] = tree.select(1);
-    // if(n){
-    //     std::println("( {}, {} )", k, *n);
+    // for(auto i = 1; i <= 15; i++){
+    //     auto [k, n] = tree.select(i);
+    //     if(n){
+    //         std::println("( {}, {} )", k, *n);
+    //     }
     // }
     //
     // auto sorted = tree.output_sorted();
@@ -110,5 +151,11 @@ int main(void){
     }
     for(auto i = 0; i < 100; i++){
         test_search_and_delete();
+    }
+    for(auto i = 0; i < 100; i++){
+        test_min_max();
+    }
+    for(auto i = 0; i < 100; i++){
+        test_select();
     }
 }

@@ -351,9 +351,8 @@ namespace dt {
             (*node)->key = key;
             (*node)->data = item;
             (*node)->parent = prev;
-            if(prev){
-                prev->size++;
-            }
+            (*node)->size = 1;
+            inc_size(*node);
             m_size++;
             return true;
         }
@@ -404,6 +403,20 @@ namespace dt {
                     parent = parent->parent;
             }
             return nullptr;
+        }
+        void inc_size(const Node* n){
+            Node* parent = n->parent;
+            while(parent){
+                parent->size++;
+                parent = parent->parent;
+            }
+        }
+        void dec_size(const Node* n){
+            Node* parent = n->parent;
+            while(parent){
+                parent->size--;
+                parent = parent->parent;
+            }
         }
     public:
         std::tuple<K, T*> predecessor(const K& key) const {
@@ -462,6 +475,7 @@ start:
                 if(parent){
                     *child_from_parent = nullptr;
                     parent->size--;
+                    dec_size(parent);
                 } else if (node == m_root){
                     m_root = nullptr;
                 }
@@ -474,14 +488,15 @@ start:
                 n->data = node->data;
                 node->key = tmp_k;
                 node->data = tmp_d;
-                node->size--;
+                // node->size--;
+                dec_size(n);
                 node = n;
                 goto start; //lets get sloppy
             } // only has left child
             else if(node->left){
                 if(parent){
                     *child_from_parent = node->left;
-                    parent->size--;
+                    dec_size(parent);
                     (*child_from_parent)->parent = parent;
                 } else {
                     m_root = node->left;
@@ -492,7 +507,7 @@ start:
             else if(node->right){
                 if(parent){
                     *child_from_parent = node->right;
-                    parent->size--;
+                    dec_size(parent);
                     (*child_from_parent)->parent = parent;
                 } else {
                     m_root = node->right;
@@ -509,12 +524,11 @@ start:
             return true;
         }
         std::tuple<K, T*> select(std::size_t i){
-            if(i > m_size) return {};
+            if(i++ > m_size) return {};
             auto node = m_root;
-            auto j = node->left ? node->left->size : 0;
 
             while(node){
-
+                auto j = node->left ? node->left->size : 0;
                 if(i == j + 1) return { node->key, &node->data };
                 else if(i < j + 1){
                     node = node->left;
