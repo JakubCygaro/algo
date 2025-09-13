@@ -264,14 +264,31 @@ namespace dt {
     template <typename K, typename T>
     class RBTree {
     private:
+        enum class ChildDir {
+            LEFT,
+            RIGHT,
+        };
+#define WHICH_CHILD(PARENTPTR, NODEPTR) PARENTPTR->left == NODEPTR ? ChildDir::LEFT : ChildDir::RIGHT
+
+        enum class Color{
+            RED,
+            BLACK
+        };
         struct Node {
             K key{};
             T data{};
             std::size_t size{1};
+            Color color;
             Node* parent{};
             Node* left{}; //smaller
             Node* right{}; //larger
         };
+        inline static const Node _NIL_V = Node{
+            .right = nullptr,
+            .left = nullptr,
+            .parent = nullptr,
+        };
+        inline static const Node* NIL = &_NIL_V;
 
         Node* m_root{};
         std::size_t m_size{};
@@ -353,6 +370,7 @@ namespace dt {
             (*node)->parent = prev;
             (*node)->size = 1;
             inc_size(*node);
+            insert_fixup(*node);
             m_size++;
             return true;
         }
@@ -542,36 +560,130 @@ start:
         }
     private:
         bool rotate_right(Node* node_x){
+            if(!node_x) return false;
             if(!node_x->left) return false;
 
             auto node_y = node_x->left;
 
             node_y->parent = node_x->parent;
 
-            Node** child_ptr = node_y->parent->key < node_y->key ? &node_y->parent->right : &node_y->parent->left;
-            *child_ptr = node_y;
+            if(node_y->parent){
+                Node** child_ptr = node_y->parent->right == node_x ? &node_y->parent->right : &node_y->parent->left;
+                *child_ptr = node_y;
+            } else {
+                m_root = node_y;
+            }
 
             node_x->left = node_y->right;
-            node_y->right->parent = node_x;
+            if(node_x->left)
+                node_x->left->parent = node_x;
 
             node_x->parent = node_y;
             node_y->right = node_x;
+
+            node_x->size = 1;
+            if(node_x->right)
+                node_x->size += node_x->right->size;
+            if(node_x->left)
+                node_x->size += node_x->left->size;
+            node_y->size = 1;
+            if(node_y->right)
+                node_y->size += node_y->right->size;
+            if(node_y->left)
+                node_y->size += node_y->left->size;
+            return true;
         }
         bool rotate_left(Node* node_x){
+            if(!node_x) return false;
             if(!node_x->right) return false;
 
             auto node_y = node_x->right;
 
             node_y->parent = node_x->parent;
 
-            Node** child_ptr = node_y->parent->key < node_y->key ? &node_y->parent->right : &node_y->parent->left;
-            *child_ptr = node_y;
-
+            if(node_y->parent){
+                Node** child_ptr = node_y->parent->right == node_x ? &node_y->parent->right : &node_y->parent->left;
+                *child_ptr = node_y;
+            } else {
+                m_root = node_y;
+            }
             node_x->right = node_y->left;
-            node_y->left->parent = node_x;
+            if(node_x->right)
+                node_x->right->parent = node_x;
 
             node_x->parent = node_y;
             node_y->left = node_x;
+
+            node_x->size = 1;
+            if(node_x->right)
+                node_x->size += node_x->right->size;
+            if(node_x->left)
+                node_x->size += node_x->left->size;
+            node_y->size = 1;
+            if(node_y->right)
+                node_y->size += node_y->right->size;
+            if(node_y->left)
+                node_y->size += node_y->left->size;
+            return true;
+        }
+        void insert_fixup(Node* z){
+            z->color = Color::RED;
+            // I am red and my parent is red
+            while(z && z->parent && z->parent->color == Color::RED){
+                Node* grandparent = z->parent->parent;
+                ChildDir parent_dir{};
+                if(grandparent){
+                    parent_dir = WHICH_CHILD(grandparent, z->parent);
+                }
+                Node* uncle = nullptr;
+                if(grandparent){
+                    uncle = (parent_dir == ChildDir::LEFT) ? grandparent->right : grandparent->left;
+                }
+                auto uncle_color = uncle ? uncle->color : Color::BLACK;
+                auto z_dir = WHICH_CHILD(z->parent, z);
+
+                if(uncle_color == Color::RED){
+                    z->parent->color = Color::BLACK;
+                    uncle->color = Color::BLACK;
+                    if(grandparent) grandparent->color = Color::RED;
+                    z = grandparent;
+                    continue;
+                }
+                else if(parent_dir == ChildDir::LEFT){
+                    if(z_dir == ChildDir::RIGHT){
+                        z = z->parent;
+                        rotate_left(z);
+                        z_dir = ChildDir::LEFT;
+                    }
+                    if(z->parent) z->parent->color = Color::BLACK;
+                    if(grandparent) grandparent->color = Color::RED;
+                    rotate_right(grandparent);
+                    break;
+                } else if(parent_dir == ChildDir::RIGHT) {
+                    if(z_dir == ChildDir::LEFT){
+                        z = z->parent;
+                        rotate_right(z);
+                        z_dir = ChildDir::RIGHT;
+                    }
+                    if(z->parent) z->parent->color = Color::BLACK;
+                    if(grandparent) grandparent->color = Color::RED;
+                    rotate_left(grandparent);
+                    break;
+                }
+            }
+            m_root->color = Color::BLACK;
+        }
+        void transplant(Node* u, Node* v){
+            if(!u->parent){
+                m_root = v;
+            } else if (u == u->parent->left){
+                u->parent->left = v;
+            } else {
+                u->parent->right = v;
+            }
+            if(v){
+                v->parent = u->parent;
+            }
         }
     public:
     };
