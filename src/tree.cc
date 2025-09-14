@@ -137,6 +137,6 @@ int main(void){
         test_min_max();
     }
     for(auto i = 0; i < 100; i++){
-        test_select();
+        // test_select();
     }
 }

@@ -423,6 +423,7 @@ namespace dt {
             return nullptr;
         }
         void inc_size(const Node* n){
+            if(!n) return;
             Node* parent = n->parent;
             while(parent){
                 parent->size++;
@@ -430,6 +431,7 @@ namespace dt {
             }
         }
         void dec_size(const Node* n){
+            // if(!n) return;
             Node* parent = n->parent;
             while(parent){
                 parent->size--;
@@ -471,6 +473,24 @@ namespace dt {
             }
             return {};
         }
+    private:
+        Node* successor_node(Node* node) const {
+            if(!node) return {};
+
+            auto right_child = min_impl(node->right);
+            if(right_child) return right_child;
+
+            auto parent = node->parent;
+
+            while (parent){
+                if(parent->key > node->key)
+                    return parent;
+                else
+                    parent = parent->parent;
+            }
+            return nullptr;
+        }
+    public:
         std::vector<std::tuple<K, T>> output_sorted() {
             std::vector<std::tuple<K, T>> ret(m_size);
             std::size_t i = 0;
@@ -478,68 +498,187 @@ namespace dt {
             return ret;
         }
         bool delete_element(const K& key){
-            auto node = search_impl(key);
-            if(!node) return false;
-start:
-            auto parent = node->parent;
-            // pointer to the pointer of the parent to this node
-            Node** child_from_parent = nullptr;
-            if(parent){
-                child_from_parent = parent->left == node ? &parent->left : &parent->right;
-            }
-            // is leaf
-            if(!node->left && !node->right){
-                // make the parent forget me
-                if(parent){
-                    *child_from_parent = nullptr;
-                    // dec_size(node);
-                } else if (node == m_root){
-                    m_root = nullptr;
-                }
-            } // two children case
-            else if(node->left && node->right){
-                auto n = predecessor_node(node);
-                K tmp_k = n->key;
-                T tmp_d = n->data;
-                n->key = node->key;
-                n->data = node->data;
-                node->key = tmp_k;
-                node->data = tmp_d;
-                // node->size--;
-                node = n;
-                // dec_size(node);
-                goto start; //lets get sloppy
-            } // only has left child
-            else if(node->left){
-                if(parent){
-                    *child_from_parent = node->left;
-                    // dec_size(node);
-                    (*child_from_parent)->parent = parent;
-                } else {
-                    m_root = node->left;
-                    m_root->parent = nullptr;
-                    m_root->size--;
-                }
-            } // only has right child
-            else if(node->right){
-                if(parent){
-                    *child_from_parent = node->right;
-                    // dec_size(node);
-                    (*child_from_parent)->parent = parent;
-                } else {
-                    m_root = node->right;
-                    m_root->parent = nullptr;
-                    m_root->size--;
-                }
+            auto z = search_impl(key);
+            if(!z) return false;
 
+            auto y = z;
+            auto y_original_color = y->color;
+            // fake x in case the real one was null
+            Node _sentinel = Node{ .color = Color::BLACK };
+            Node* x = nullptr;
+
+            if(!z->left){
+                x = z->right ? z->right : &_sentinel;
+                if(!z->right){
+                    x->parent = z->parent;
+                }
+                transplant(z, z->right);
             }
-            else {
-                return false;
+            else if (!z->right){
+                x = z->left ? z->left : &_sentinel;
+                if(!z->left){
+                    x->parent = z->parent;
+                }
+                transplant(z, z->left);
+            } else {
+                y = min_impl(z->right);
+                y_original_color = y->color;
+                x = y->right ? y->right : &_sentinel;
+                // in case y has no right child
+                if(!y->right){
+                    y->right = x; // make y->right point to the sentinel
+                    x->parent = y; // and the sentinel point to y as its parent
+                }
+                // this will always be true
+                // if(y->parent == z){
+                //     x->parent = y;
+                // }
+                // else {
+                    transplant(y, y->right); // y->right might be sentinel at this point
+                    y->right = z->right;
+                    if(y->right)
+                        y->right->parent = y;
+                // }
+                transplant(z, y);
+                y->left = z->left;
+                if(y->left)
+                    y->left->parent = y;
+                y->color = z->color;
             }
-            dec_size(node);
-            delete node;
+            dec_size(x);
+            const bool sentinel = x == &_sentinel;
+            if(y_original_color == Color::BLACK){
+                delete_fixup(x);
+            }
+            // clean this up
+            if(sentinel){
+                if(m_root == &_sentinel) m_root = nullptr;
+                if(x->parent && x->parent->right == x) x->parent->right = nullptr;
+                if(x->parent && x->parent->left == x) x->parent->left = nullptr;
+            }
+
+
+// start:
+//             auto y = node;
+//             auto original_color = y->color;
+//             auto parent = node->parent;
+//             // pointer to the pointer of the parent to this node
+//             Node** child_from_parent = nullptr;
+//             if(parent){
+//                 child_from_parent = parent->left == node ? &parent->left : &parent->right;
+//             }
+//             // is leaf
+//             if(!node->left && !node->right){
+//                 // make the parent forget me
+//                 if(parent){
+//                     *child_from_parent = nullptr;
+//                 } else if (node == m_root){
+//                     m_root = nullptr;
+//                 }
+//             } // two children case
+//             else if(node->left && node->right){
+//                 auto n = predecessor_node(node);
+//                 K tmp_k = n->key;
+//                 T tmp_d = n->data;
+//                 n->key = node->key;
+//                 n->data = node->data;
+//                 node->key = tmp_k;
+//                 node->data = tmp_d;
+//                 node = n;
+//                 goto start; //lets get sloppy
+//             } // only has left child
+//             else if(node->left){
+//                 if(parent){
+//                     *child_from_parent = node->left;
+//                     (*child_from_parent)->parent = parent;
+//                     (*child_from_parent)->color = original_color;
+//                 } else {
+//                     m_root = node->left;
+//                     m_root->parent = nullptr;
+//                     m_root->size--;
+//                     m_root->color = Color::BLACK;
+//                 }
+//             } // only has right child
+//             else if(node->right){
+//                 if(parent){
+//                     *child_from_parent = node->right;
+//                     (*child_from_parent)->parent = parent;
+//                     (*child_from_parent)->color = original_color;
+//                 } else {
+//                     m_root = node->right;
+//                     m_root->parent = nullptr;
+//                     m_root->size--;
+//                     m_root->color = Color::BLACK;
+//                 }
+//
+//             }
+//             else {
+//                 return false;
+//             }
+//             if(original_color == Color::BLACK){
+//
+//             }
+            delete z;
             m_size--;
             return true;
+        }
+        void delete_fixup(Node* x){
+            if(!x) return;
+
+            while(x && x->parent && x != m_root && x->color == Color::BLACK){
+                if(x == x->parent->left){
+                    auto w = x->parent->right; // sibling
+                    if(w && w->color == Color::RED){
+                        w->color = Color::BLACK;
+                        x->parent->color = Color::RED;
+                        rotate_left(x->parent);
+                        w = x->parent->right;
+                    }
+                    if (w && (!w->left || w->left->color == Color::BLACK) && (!w->right || w->right->color == Color::BLACK)){
+                        w->color = Color::RED;
+                        x = x->parent;
+                    }
+                    else if (w && (!w->right || w->right->color == Color::BLACK)){
+                        if(w->left) w->left->color = Color::BLACK;
+                        w->color = Color::RED;
+                        rotate_right(w);
+                        w = x->parent->right;
+                        if(w) w->color = x->parent->color;
+                        x->parent->color = Color::BLACK;
+                        if(w->right) w->right->color = Color::BLACK;
+                        rotate_left(x->parent);
+                        x = m_root;
+                    } else {
+                        break;
+                    }
+                } else {
+                    auto w = x->parent->left;
+                    if(w && w->color == Color::RED){
+                        w->color = Color::BLACK;
+                        x->parent->color = Color::RED;
+                        rotate_right(x->parent);
+                        w = x->parent->left;
+                    }
+                    if (w && (!w->right || w->right->color == Color::BLACK) && (!w->left || w->left->color == Color::BLACK)){
+                        w->color = Color::RED;
+                        x = x->parent;
+                    }
+                    else if (w && (!w->left || w->left->color == Color::BLACK)){
+                        if(w->right) w->right->color = Color::BLACK;
+                        w->color = Color::RED;
+                        rotate_left(w);
+                        w = x->parent->left;
+                        if(w) w->color = x->parent->color;
+                        x->parent->color = Color::BLACK;
+                        if(w->left) w->left->color = Color::BLACK;
+                        rotate_right(x->parent);
+                        x = m_root;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            x->color = Color::BLACK;
         }
         std::tuple<K, T*> select(std::size_t i){
             if(i++ > m_size) return {};
