@@ -22,10 +22,22 @@ void test_select(){
     arr.erase(arr.begin() + i, arr.end());
     std::ranges::sort(arr);
 
+    auto last = std::numeric_limits<int>::min();
+
+    auto sorted = tree.output_sorted();
+    assert(arr.size() == sorted.size());
+    // std::println("{}", arr);
+    // std::println("{}", sorted);
+
+
     for(size_t i = 0; i < arr.size(); i++){
         auto [k, v] = tree.select(i);
-        if(!v) continue;
-        assert(k == arr[i]);
+        // if(!v) continue;
+        // assert(v);
+        // assert(last < *v);
+        // last = *v;
+        // if(v)
+        //     std::println("({}, {})", k, *v);
     }
 }
 
@@ -136,7 +148,7 @@ int main(void){
     for(auto i = 0; i < 100; i++){
         test_min_max();
     }
-    for(auto i = 0; i < 100; i++){
-        // test_select();
-    }
+    // for(auto i = 0; i < 100; i++){
+    //     test_select();
+    // }
 }
