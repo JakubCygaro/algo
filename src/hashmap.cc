@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <datatypes.hpp>
 #include <common.hpp>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -33,7 +34,7 @@ void test_remove(){
     std::vector<std::pair<std::string, int>> arr(size);
     auto i = common::get_random_in_range(-1000, 1000);
     std::ranges::for_each(arr, [&](auto& v) {
-            v.first = std::to_string(rand());
+            v.first = std::format("{:x}", rand());
             v.second = i;
             i += common::get_random_in_range(1, 50);
         });
@@ -60,7 +61,7 @@ void test_insert_and_find(){
     std::vector<std::pair<std::string, int>> arr(size);
     auto i = common::get_random_in_range(-1000, 1000);
     std::ranges::for_each(arr, [&](auto& v) {
-            v.first = std::to_string(rand());
+            v.first = std::format("{:x}", rand());
             v.second = i;
             i += common::get_random_in_range(1, 50);
         });

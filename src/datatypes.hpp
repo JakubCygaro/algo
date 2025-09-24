@@ -1,12 +1,14 @@
 #ifndef DATATYPES_HPP
 #define DATATYPES_HPP
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <iterator>
 #include <optional>
 #include <print>
 #include <tuple>
@@ -886,9 +888,7 @@ namespace dt {
     template<>
     struct Hash<std::size_t> {
         inline std::size_t operator()(const std::size_t& t) const noexcept {
-            std::size_t hash = 5381;
-            hash = ((hash << 5) + hash) + t;
-            return hash;
+            return t;
         }
     };
 
@@ -992,6 +992,8 @@ namespace dt {
                 if(!(m_data[idx].has_value())){
                     m_data[idx] = Item{ .key = key, .value = value };
                     return true;
+                } else if(m_data[idx].has_value() && m_data[idx].value().key == key){
+                    return false;
                 }
                 idx = (idx + 1) % m_cap;
             } while(idx != start);
@@ -1046,6 +1048,102 @@ namespace dt {
         }
         bool empty() const noexcept {
             return m_size == 0;
+        }
+    };
+
+    template<typename T, int HASHNUM>
+    struct BloomHash{
+        std::array<std::size_t, HASHNUM> operator()(const T& t)const noexcept;
+    };
+
+    template<typename T, int HASHNUM, typename BH = BloomHash<T, HASHNUM>>
+    class BloomFilter{
+    public:
+        using byte_t = unsigned char;
+        inline static constexpr size_t chunk_size = sizeof(byte_t);
+        inline static constexpr size_t bits_in_chunk = chunk_size * 8;
+    private:
+        std::size_t m_size{};
+        std::size_t m_bits{};
+        byte_t* m_data{};
+
+    public:
+        inline BloomFilter(std::size_t size):
+            m_size(size)
+            , m_bits(m_size * bits_in_chunk)
+        {
+            m_data = new byte_t[m_size];
+        }
+        inline BloomFilter(const BloomFilter& other):
+            m_size(other.m_size)
+            , m_bits(m_size * bits_in_chunk)
+        {
+            m_data = new byte_t[m_size];
+            std::copy(m_data, m_data + m_size, other.m_data);
+        }
+        inline BloomFilter& operator=(const BloomFilter& other)
+        {
+            m_size = other.m_size;
+            m_bits = other.m_bits;
+            m_data = new byte_t[m_size];
+            std::copy(m_data, m_data + m_size, other.m_data);
+        }
+        inline BloomFilter(BloomFilter&& other):
+            m_size(other.m_size)
+            , m_bits(m_size * bits_in_chunk)
+        {
+            m_data = other.m_data;
+            other.m_data = nullptr;
+            other.m_size = 0;
+        }
+        inline BloomFilter& operator=(BloomFilter&& other)
+        {
+            m_size = other.m_size;
+            m_bits = other.m_bits;
+            m_data = other.m_data;
+            other.m_data = nullptr;
+            other.m_size = 0;
+        }
+        inline void insert(const T& val){
+            std::array<std::size_t, HASHNUM> hashes = BH()(val);
+
+            for(std::size_t i = 0; i < HASHNUM; i++){
+                auto hash = hashes[i];
+                auto bit_idx = hash % m_bits;
+                auto chunk_idx = bit_idx / bits_in_chunk;
+                auto bit_in_chunk_idx = bit_idx % bits_in_chunk;
+
+                auto _in = (1 << bit_in_chunk_idx);
+                _in = (m_data[chunk_idx] | _in);
+                m_data[chunk_idx] = _in;
+            }
+        }
+        inline bool contains(const T& val) const{
+            std::array<std::size_t, HASHNUM> hashes = BH()(val);
+
+            bool ret = false;
+
+            for(std::size_t i = 0; i < HASHNUM; i++){
+                auto hash = hashes[i];
+                auto bit_idx = hash % m_bits;
+                auto chunk_idx = bit_idx / bits_in_chunk;
+                auto bit_in_chunk_idx = bit_idx % bits_in_chunk;
+
+                auto _in = (1 << bit_in_chunk_idx);
+                ret &= (_in == (m_data[chunk_idx] & _in));
+                // if(_in == (m_data[chunk_idx] & _in))
+                //     return true;
+            }
+            return false;
+        }
+        inline std::size_t chunks() const {
+            return m_size;
+        }
+        inline std::size_t bits() const {
+            return m_size * bits_in_chunk;
+        }
+        inline void clear(){
+            std::fill(m_data, m_data + m_size, 0);
         }
     };
 

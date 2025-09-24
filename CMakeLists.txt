@@ -60,3 +60,7 @@ add_test(NAME tree COMMAND tree)
 add_executable(hashmap src/hashmap.cc)
 target_link_libraries(hashmap PRIVATE cpp_std_23)
 add_test(NAME hashmap COMMAND hashmap)
+
+add_executable(bloom_filter src/bloom_filter.cc)
+target_link_libraries(bloom_filter PRIVATE cpp_std_23)
+add_test(NAME bloom_filter COMMAND bloom_filter)
