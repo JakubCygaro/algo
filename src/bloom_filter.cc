@@ -79,6 +79,6 @@ void test_bloom_filter(){
 
 int main(void){
     for(auto i = 0; i < 100; i++){
-
+        test_bloom_filter();
     }
 }

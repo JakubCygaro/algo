@@ -1114,14 +1114,14 @@ namespace dt {
                 auto bit_in_chunk_idx = bit_idx % bits_in_chunk;
 
                 auto _in = (1 << bit_in_chunk_idx);
-                _in = (m_data[chunk_idx] | _in);
-                m_data[chunk_idx] = _in;
+                // _in = (m_data[chunk_idx] | _in);
+                m_data[chunk_idx] |= _in;
             }
         }
         inline bool contains(const T& val) const{
             std::array<std::size_t, HASHNUM> hashes = BH()(val);
 
-            bool ret = false;
+            bool ret = true;
 
             for(std::size_t i = 0; i < HASHNUM; i++){
                 auto hash = hashes[i];
@@ -1131,10 +1131,8 @@ namespace dt {
 
                 auto _in = (1 << bit_in_chunk_idx);
                 ret &= (_in == (m_data[chunk_idx] & _in));
-                // if(_in == (m_data[chunk_idx] & _in))
-                //     return true;
             }
-            return false;
+            return ret;
         }
         inline std::size_t chunks() const {
             return m_size;
