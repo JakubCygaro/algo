@@ -81,12 +81,4 @@ int main(void){
     for(auto i = 0; i < 100; i++){
 
     }
-    // dt::BloomFilter<std::string, 3> bf(1024);
-    // bf.insert("sperma");
-    //
-    // assert(bf.contains("sperma"));
-    // assert(!bf.contains("sperma2"));
-    // bf.clear();
-    //
-    // assert(!bf.contains("sperma"));
 }
