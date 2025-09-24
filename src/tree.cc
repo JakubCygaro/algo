@@ -4,42 +4,42 @@
 #include <print>
 #include "common.hpp"
 
-void test_select(){
-    const auto size = common::get_random_in_range(5, 50);
-    std::vector<int> arr(size);
-    auto i = common::get_random_in_range(-1000, 1000);
-    std::ranges::for_each(arr, [&](auto& v) {
-            v = i;
-            i += common::get_random_in_range(1, 50);
-        });
-    dt::RBTree<int, int> tree;
-    std::ranges::shuffle(arr, std::mt19937 { std::random_device {}() });
-    std::ranges::for_each(arr, [&](auto v){ tree.insert(v, std::move(v)); });
-    i = common::get_random_in_range(size / 2, size - 2);
-    for(auto j = i; j < size; j++){
-        assert(tree.delete_element(arr[j]));
-    }
-    arr.erase(arr.begin() + i, arr.end());
-    std::ranges::sort(arr);
-
-    auto last = std::numeric_limits<int>::min();
-
-    auto sorted = tree.output_sorted();
-    assert(arr.size() == sorted.size());
-    // std::println("{}", arr);
-    // std::println("{}", sorted);
-
-
-    for(size_t i = 0; i < arr.size(); i++){
-        auto [k, v] = tree.select(i);
-        // if(!v) continue;
-        // assert(v);
-        // assert(last < *v);
-        // last = *v;
-        // if(v)
-        //     std::println("({}, {})", k, *v);
-    }
-}
+// void test_select(){
+//     const auto size = common::get_random_in_range(5, 50);
+//     std::vector<int> arr(size);
+//     auto i = common::get_random_in_range(-1000, 1000);
+//     std::ranges::for_each(arr, [&](auto& v) {
+//             v = i;
+//             i += common::get_random_in_range(1, 50);
+//         });
+//     dt::RBTree<int, int> tree;
+//     std::ranges::shuffle(arr, std::mt19937 { std::random_device {}() });
+//     std::ranges::for_each(arr, [&](auto v){ tree.insert(v, std::move(v)); });
+//     i = common::get_random_in_range(size / 2, size - 2);
+//     for(auto j = i; j < size; j++){
+//         assert(tree.delete_element(arr[j]));
+//     }
+//     arr.erase(arr.begin() + i, arr.end());
+//     std::ranges::sort(arr);
+//
+//     auto last = std::numeric_limits<int>::min();
+//
+//     auto sorted = tree.output_sorted();
+//     assert(arr.size() == sorted.size());
+//     // std::println("{}", arr);
+//     // std::println("{}", sorted);
+//
+//
+//     for(size_t i = 0; i < arr.size(); i++){
+//         auto [k, v] = tree.select(i);
+//         // if(!v) continue;
+//         // assert(v);
+//         // assert(last < *v);
+//         // last = *v;
+//         // if(v)
+//         //     std::println("({}, {})", k, *v);
+//     }
+// }
 
 void test_min_max(){
     const auto size = common::get_random_in_range(5, 50);

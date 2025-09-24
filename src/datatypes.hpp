@@ -7,8 +7,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <optional>
 #include <print>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 namespace dt {
@@ -875,5 +877,177 @@ namespace dt {
         }
     public:
     };
+
+    template<typename T>
+    struct Hash {
+        std::size_t operator()(const T& t) const noexcept;
+    };
+
+    template<>
+    struct Hash<std::size_t> {
+        inline std::size_t operator()(const std::size_t& t) const noexcept {
+            std::size_t hash = 5381;
+            hash = ((hash << 5) + hash) + t;
+            return hash;
+        }
+    };
+
+    template<typename K, typename T, typename H = Hash<K>>
+    class HashMap{
+        static inline constexpr auto GROW_FACTOR = 2;
+        static inline constexpr auto FILL_RATIO_GROW_THRESHOLD = 0.6;
+        static inline constexpr auto FILL_RATIO_SHRINK_THRESHOLD = 0.2;
+        struct Item {
+            K key{};
+            T value{};
+        };
+
+        using item_t = std::optional<Item>;
+
+        item_t* m_data{};
+
+        std::size_t m_size{};
+        std::size_t m_cap{1};
+        public:
+
+        HashMap(){
+            m_data = new item_t[m_cap];
+            m_data[0] = std::nullopt;
+        }
+        HashMap(const HashMap& other):
+            m_size(other.m_size)
+            , m_cap(other.m_cap)
+        {
+            m_data = new item_t[m_cap];
+            std::copy(std::begin(other.m_data), std::begin(other.m_data) + m_cap, std::begin(m_data));
+        }
+        HashMap& operator=(const HashMap& other)
+        {
+            m_size = other.m_size;
+            m_cap = other.m_cap;
+            m_data = new item_t[m_cap];
+            std::copy(std::begin(other.m_data), std::begin(other.m_data) + m_cap, std::begin(m_data));
+        }
+        HashMap(HashMap&& other):
+            m_size(other.m_size)
+            , m_cap(other.m_cap)
+        {
+            m_data = other.m_data;
+            other.m_data = nullptr;
+            other.m_cap = 0;
+            other.m_size = 0;
+        }
+        HashMap& operator=(HashMap&& other)
+        {
+            m_size = other.m_size;
+            m_cap = other.m_cap;
+            m_data = other.m_data;
+            other.m_data = nullptr;
+            other.m_cap = 0;
+            other.m_size = 0;
+        }
+        ~HashMap(){
+            if(m_data)
+                delete[] m_data;
+        }
+    private:
+        void grow(){
+            auto new_cap = m_cap * GROW_FACTOR;
+            auto new_data = new item_t[new_cap];
+            std::fill(new_data, new_data + new_cap, std::nullopt);
+            auto old_data = m_data;
+            auto old_cap = m_cap;
+            m_data = new_data;
+            m_cap = new_cap;
+            reinsert(old_cap, old_data);
+
+            delete[] old_data;
+        }
+        void shrink(){
+            auto new_cap = m_cap / GROW_FACTOR;
+            auto new_data = new item_t[new_cap];
+            std::fill(new_data, new_data + new_cap, std::nullopt);
+            auto old_data = m_data;
+            auto old_cap = m_cap;
+            m_data = new_data;
+            m_cap = new_cap;
+            reinsert(old_cap, old_data);
+
+            delete[] old_data;
+        }
+        void reinsert(std::size_t cap, item_t* data){
+            for(size_t i = 0; i < cap; i++){
+                if(data[i].has_value()){
+                    auto item = data[i].value();
+                    (void)insert_impl(item.key, std::move(item.value));
+                }
+            }
+        }
+
+        bool insert_impl(const K& key, const T&& value){
+            auto hash = H()(key);
+            auto idx = hash % m_cap;
+            auto start = idx;
+            do{
+                if(!(m_data[idx].has_value())){
+                    m_data[idx] = Item{ .key = key, .value = value };
+                    return true;
+                }
+                idx = (idx + 1) % m_cap;
+            } while(idx != start);
+            return false;
+        }
+        item_t* find_impl(const K& key) const noexcept {
+            auto hash = H()(key);
+            auto idx = hash % m_cap;
+            auto start = idx;
+            do{
+                if(m_data[idx].has_value() && m_data[idx].value().key == key){
+                    return { &m_data[idx] };
+                }
+                idx = (idx + 1) % m_cap;
+            } while(idx != start);
+            return nullptr;
+        }
+    public:
+        bool insert(std::pair<const K&, const T&&> p){
+            return insert(p.first, std::move(p.second));
+        }
+        bool insert(const K& key, const T&& value){
+            if(m_size / static_cast<float>(m_cap) > FILL_RATIO_GROW_THRESHOLD)
+                grow();
+            m_size++;
+            return insert_impl(key, std::move(value));
+        }
+        T* find(const K& key) const noexcept {
+            if(auto f = find_impl(key); f){
+                return &(f->value().value);
+            }
+            return nullptr;
+        }
+        bool remove(const K& key){
+            auto f = find_impl(key);
+            if(f) {
+                *f = std::nullopt;
+                m_size--;
+                if(m_size / static_cast<float>(m_cap) < FILL_RATIO_SHRINK_THRESHOLD)
+                    shrink();
+                return true;
+            }
+            return false;
+        }
+        bool contains(const K& key) const noexcept {
+            auto f = find_impl(key);
+            return f ? f->has_value() : false;
+        }
+
+        std::size_t size() const noexcept {
+            return m_size;
+        }
+        bool empty() const noexcept {
+            return m_size == 0;
+        }
+    };
+
 }
 #endif
