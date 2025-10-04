@@ -64,3 +64,7 @@ add_test(NAME hashmap COMMAND hashmap)
 add_executable(bloom_filter src/bloom_filter.cc)
 target_link_libraries(bloom_filter PRIVATE cpp_std_23)
 add_test(NAME bloom_filter COMMAND bloom_filter)
+
+add_executable(huffman src/huffman.cc)
+target_link_libraries(huffman PRIVATE cpp_std_23)
+add_test(NAME huffman COMMAND huffman)
