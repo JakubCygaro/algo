@@ -1,6 +1,8 @@
+#include "common.hpp"
 #include "datatypes.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <print>
 #include <string>
 #include <vector>
@@ -53,15 +55,90 @@ void make_prefix_map(Node* node, prefix_t prefix, encode_map_t& map)
 {
     if (!node)
         return;
+    std::println("{}", prefix);
     if (node->symbol != Node::INTERNAL_NODE_SYMBOL) {
         map.insert({ node->symbol, std::move(prefix) });
     }
-    make_prefix_map(node->right, prefix + "1", map);
-    make_prefix_map(node->left, prefix + "0", map);
+    if(node->right)
+        make_prefix_map(node->right, prefix + "1", map);
+    if(node->left)
+        make_prefix_map(node->left, prefix + "0", map);
+}
+
+void test_huffman_code(){
+    std::vector<Node*> alphabet(common::get_random_in_range(5, 6));
+    for(size_t i = 0; i < alphabet.size(); i++){
+        alphabet[i] = new Node(common::get_random_in_range((int)'A', (int)'Z'), common::get_random_in_range(1, 100));
+    }
+    auto last = std::unique(alphabet.begin(), alphabet.end(), [](Node* a, Node* b) { return a->symbol == b->symbol; });
+    std::for_each(last, alphabet.end(), [](auto n) { delete n; });
+    alphabet.erase(last, alphabet.end());
+    dt::MinHeap<float, Node*> forest;
+    std::ranges::for_each(alphabet, [&](auto n) { forest.insert(n->freq, n); });
+
+    while (forest.size() >= 2) {
+        auto [f1, t1] = forest.extract();
+        auto [f2, t2] = forest.extract();
+
+        Node* internal = new Node();
+
+        internal->left = t1;
+        internal->right = t2;
+
+        internal->freq = f1 + f2;
+
+        forest.insert(internal->freq, internal);
+    }
+    encode_map_t encode_map;
+    decode_map_t decode_map;
+    make_prefix_map(std::get<1>(forest.extract()), std::string {}, encode_map);
+
+    for (auto elem : alphabet) {
+        assert(encode_map.contains(elem->symbol));
+        decode_map.insert({ *encode_map.find(elem->symbol), std::move(elem->symbol) });
+    }
+    const auto text_len = common::get_random_in_range(5, 30);
+    std::string text;
+    for(auto i = 0; i < text_len; i++){
+        text += alphabet[rand() % alphabet.size()]->symbol;
+    }
+    std::string encoded;
+
+    for (auto it = text.begin(); it != text.end(); it++) {
+        encoded += *encode_map.find(*it);
+    }
+
+    std::string decoded;
+    std::string buf;
+    for (auto it = encoded.begin(); it != encoded.end(); it++) {
+        buf += *it;
+        auto c = decode_map.find(buf);
+        if(c) {
+            decoded += c;
+            buf.clear();
+        }
+    }
+    if(decoded != text){
+        for (auto elem : alphabet) {
+            std::println("{}", elem->symbol);
+        }
+        for (auto elem : alphabet) {
+            auto f = *encode_map.find(elem->symbol);
+            std::println("{} -> {}", elem->symbol, f);
+        }
+
+        std::println("{}\n{}", text, decoded);
+    }
+    assert(decoded == text);
+    std::for_each(alphabet.begin(), alphabet.end(), [](auto n) { delete n; });
 }
 
 int main(void)
 {
+    for(size_t i = 0; i < 100; i++){
+        test_huffman_code();
+    }
+    return 0;
 
     std::vector<Node*> input = {
         new Node('a', 3),
@@ -71,32 +148,25 @@ int main(void)
         new Node('e', 2),
         new Node('f', 6)
     };
-    std::vector<Node*> forest = input;
+    dt::MinHeap<float, Node*> forest;
+    std::ranges::for_each(input, [&](auto n) { forest.insert(n->freq, n); });
 
     while (forest.size() >= 2) {
-        auto min = std::min_element(forest.begin(), forest.end(), [](Node*& node_a, Node*& node_b) {
-            return node_a->freq < node_b->freq;
-        });
-        Node* t1 = *min;
-        forest.erase(min, min + 1);
-        min = std::min_element(forest.begin(), forest.end(), [](Node*& node_a, Node*& node_b) {
-            return node_a->freq < node_b->freq;
-        });
-        Node* t2 = *min;
-        forest.erase(min, min + 1);
+        auto [f1, t1] = forest.extract();
+        auto [f2, t2] = forest.extract();
 
         Node* internal = new Node();
 
         internal->left = t1;
         internal->right = t2;
 
-        internal->freq = t1->freq + t2->freq;
+        internal->freq = f1 + f2;
 
-        forest.push_back(internal);
+        forest.insert(internal->freq, internal);
     }
     encode_map_t encode_map;
     decode_map_t decode_map;
-    make_prefix_map(forest[0], std::string {}, encode_map);
+    make_prefix_map(std::get<1>(forest.extract()), std::string {}, encode_map);
 
     for (auto elem : input) {
         assert(encode_map.contains(elem->symbol));
@@ -135,3 +205,4 @@ int main(void)
     // encode and then decode
     // verify
 }
+
