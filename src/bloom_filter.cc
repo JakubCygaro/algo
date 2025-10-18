@@ -1,6 +1,7 @@
 #include <array>
 #include <common.hpp>
 #include <datatypes.hpp>
+#include <format>
 
 namespace dt {
     template<>
