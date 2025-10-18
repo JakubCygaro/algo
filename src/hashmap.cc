@@ -7,12 +7,6 @@
 
 namespace dt {
     template<>
-    struct Hash<int>{
-        std::size_t operator()(const int& t){
-            return t;
-        }
-    };
-    template<>
     struct Hash<std::string>{
         std::size_t operator()(const std::string& s){
             const char* raw = s.c_str();

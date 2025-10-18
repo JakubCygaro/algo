@@ -2,8 +2,9 @@
 #include "datatypes.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
-#include <print>
+#include <format>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,7 @@ struct Node {
     static constexpr const char INTERNAL_NODE_SYMBOL = -1;
     char symbol = 0;
     float freq = 0.0;
+    bool visited = false;
     Node* parent = nullptr;
     Node* left = nullptr;
     Node* right = nullptr;
@@ -50,12 +52,23 @@ struct Node {
     Node()
         : symbol(INTERNAL_NODE_SYMBOL) { };
 };
-
+namespace std {
+    template<>
+    struct formatter<Node> {
+        constexpr auto parse(std::format_parse_context& ctx) {
+            return ctx.begin();
+        }
+        auto format(const Node& node, std::format_context& ctx) const {
+            return std::format_to(ctx.out(), "{{ '{}' {} {} }}", node.symbol, node.freq, node.visited ? "VISITED" : "UNVISITED");
+        }
+    };
+}
 void make_prefix_map(Node* node, prefix_t prefix, encode_map_t& map)
 {
     if (!node)
         return;
-    std::println("{}", prefix);
+    assert(!node->visited && "this node has already been visited");
+    node->visited = true;
     if (node->symbol != Node::INTERNAL_NODE_SYMBOL) {
         map.insert({ node->symbol, std::move(prefix) });
     }
@@ -66,13 +79,17 @@ void make_prefix_map(Node* node, prefix_t prefix, encode_map_t& map)
 }
 
 void test_huffman_code(){
-    std::vector<Node*> alphabet(common::get_random_in_range(5, 6));
+    dt::HashMap<int, bool> alphabet_unique_guard{};
+    std::vector<Node*> alphabet(common::get_random_in_range(5, 'Z' - 'A' - 5));
     for(size_t i = 0; i < alphabet.size(); i++){
-        alphabet[i] = new Node(common::get_random_in_range((int)'A', (int)'Z'), common::get_random_in_range(1, 100));
+        auto n = new Node(common::get_random_in_range((int)'A', (int)'Z'), common::get_random_in_range(1, 100));
+        if(!alphabet_unique_guard.contains(static_cast<int>(n->symbol))){
+            alphabet[i] = n;
+            alphabet_unique_guard.insert(static_cast<int>(n->symbol), true);
+        } else {
+            i--;
+        }
     }
-    auto last = std::unique(alphabet.begin(), alphabet.end(), [](Node* a, Node* b) { return a->symbol == b->symbol; });
-    std::for_each(last, alphabet.end(), [](auto n) { delete n; });
-    alphabet.erase(last, alphabet.end());
     dt::MinHeap<float, Node*> forest;
     std::ranges::for_each(alphabet, [&](auto n) { forest.insert(n->freq, n); });
 
@@ -80,7 +97,10 @@ void test_huffman_code(){
         auto [f1, t1] = forest.extract();
         auto [f2, t2] = forest.extract();
 
+        assert(t1 != t2 && "same node extracted twice");
         Node* internal = new Node();
+        assert(internal != t1 && "internal node same as left child");
+        assert(internal != t2 && "internal node same as right child");
 
         internal->left = t1;
         internal->right = t2;
@@ -114,20 +134,9 @@ void test_huffman_code(){
         buf += *it;
         auto c = decode_map.find(buf);
         if(c) {
-            decoded += c;
+            decoded += *c;
             buf.clear();
         }
-    }
-    if(decoded != text){
-        for (auto elem : alphabet) {
-            std::println("{}", elem->symbol);
-        }
-        for (auto elem : alphabet) {
-            auto f = *encode_map.find(elem->symbol);
-            std::println("{} -> {}", elem->symbol, f);
-        }
-
-        std::println("{}\n{}", text, decoded);
     }
     assert(decoded == text);
     std::for_each(alphabet.begin(), alphabet.end(), [](auto n) { delete n; });
@@ -170,7 +179,6 @@ int main(void)
 
     for (auto elem : input) {
         assert(encode_map.contains(elem->symbol));
-        std::println("{} -> {}", elem->symbol, *encode_map.find(elem->symbol));
         decode_map.insert({ *encode_map.find(elem->symbol), std::move(elem->symbol) });
     }
 
@@ -181,7 +189,6 @@ int main(void)
         encoded += *encode_map.find(*it);
     }
 
-    std::println("{}", encoded);
 
     std::string decoded;
     std::string buf;
@@ -193,7 +200,6 @@ int main(void)
             buf.clear();
         }
     }
-    std::println("{}", decoded);
 
     std::for_each(input.begin(), input.end(), [](auto n) { delete n; });
 

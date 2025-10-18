@@ -136,6 +136,9 @@ namespace dt {
             while(auto j = shift_down(i)) {
                 i = j.value();
             }
+            if (m_size < (m_cap / 2)) {
+                shrink();
+            }
             return std::make_tuple(ret.key, ret.value);
         }
         inline T& top() const {
@@ -889,6 +892,12 @@ namespace dt {
     struct Hash<std::size_t> {
         inline std::size_t operator()(const std::size_t& t) const noexcept {
             return t;
+        }
+    };
+    template<>
+    struct Hash<int> {
+        inline std::size_t operator()(const int& t) const noexcept {
+            return static_cast<size_t>(t);
         }
     };
 
