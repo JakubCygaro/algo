@@ -355,6 +355,10 @@ namespace dt {
             }
         }
     public:
+        bool insert(const K key) {
+            static_assert(std::is_same_v<K, T>, "");
+            return insert(key, std::move(static_cast<T>(key)));
+        }
         bool insert(const K& key, T&& item){
             Node* prev = nullptr;
             Node** node = &m_root;
@@ -797,7 +801,7 @@ namespace dt {
                     else if(z == z->parent->right){
                         z = z->parent;
                         rotate_left(z);
-                    } 
+                    }
                     z->parent->color = Color::BLACK;
                     z->parent->parent->color = Color::RED;
                     rotate_right(z->parent->parent);
@@ -813,11 +817,11 @@ namespace dt {
                     else if(z == z->parent->left){
                         z = z->parent;
                         rotate_right(z);
-                    } 
+                    }
                     z->parent->color = Color::BLACK;
                     z->parent->parent->color = Color::RED;
                     rotate_left(z->parent->parent);
-                }  
+                }
             }
             m_root->color = Color::BLACK;
 
@@ -881,6 +885,10 @@ namespace dt {
         }
     public:
     };
+
+    struct _empty{};
+    template<class T>
+    using Set = RBTree<T, T>;
 
     template<typename T>
     struct Hash {

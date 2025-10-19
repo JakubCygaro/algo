@@ -68,3 +68,7 @@ add_test(NAME bloom_filter COMMAND bloom_filter)
 add_executable(huffman src/huffman.cc)
 target_link_libraries(huffman PRIVATE cpp_std_23)
 add_test(NAME huffman COMMAND huffman)
+
+add_executable(prim src/prim.cc)
+target_link_libraries(prim PRIVATE cpp_std_23)
+add_test(NAME prim COMMAND prim)
