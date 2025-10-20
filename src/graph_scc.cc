@@ -2,7 +2,6 @@
 #include <common.hpp>
 #include <format>
 #include <graph.hpp>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>

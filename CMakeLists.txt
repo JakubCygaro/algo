@@ -72,3 +72,7 @@ add_test(NAME huffman COMMAND huffman)
 add_executable(prim src/prim.cc)
 target_link_libraries(prim PRIVATE cpp_std_23)
 add_test(NAME prim COMMAND prim)
+
+add_executable(kruskal src/kruskal.cc)
+target_link_libraries(kruskal PRIVATE cpp_std_23)
+add_test(NAME kruskal COMMAND kruskal)

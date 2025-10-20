@@ -11,6 +11,7 @@
 #include <iterator>
 #include <optional>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -252,14 +253,6 @@ namespace dt {
             });
             heap.heapify_impl();
             return heap;
-        }
-        inline void debug_print() {
-            for(std::size_t i = 0; i < m_size; i++){
-            }
-        }
-        inline void debug_print_full() {
-            for(std::size_t i = 0; i < m_cap; i++){
-            }
         }
     };
     template <typename Key, typename T>
@@ -1159,6 +1152,77 @@ namespace dt {
         inline void clear(){
             std::fill(m_data, m_data + m_size, 0);
         }
+    };
+
+    template<typename T>
+    class UnionFind {
+        struct Node {
+            size_t parent{};
+            size_t size{1};
+            T content{};
+        };
+
+        Node* m_data = nullptr;
+        size_t m_size{0};
+    public:
+        inline UnionFind(const std::vector<T>& v): UnionFind(v.data(), v.size()) {}
+        inline UnionFind(const T* arr, size_t sz){
+            static_assert(std::is_copy_assignable_v<T>, "T must be copy assignable");
+            m_size = sz;
+            m_data = new Node[m_size];
+            for(size_t i = 0; i < m_size; i++){
+                m_data[i] = Node {
+                    .parent = i,
+                    .content = arr[i],
+                };
+            }
+        }
+        inline ~UnionFind(){
+            delete[] m_data;
+            m_size = 0;
+        }
+
+        inline T* find(const T& elem){
+            if(auto idx = find_impl(elem); idx < m_size) {
+                return &m_data[idx].content;
+            } else {
+                return nullptr;
+            }
+        }
+        inline void unionize(const T& x, const T& y){
+            size_t x_idx = find_impl(x);
+            size_t y_idx = find_impl(y);
+            if(x_idx >= m_size || y_idx >= m_size) return;
+            if(m_data[x_idx].size >= m_data[y_idx].size) {
+                m_data[y_idx].parent = x_idx;
+                m_data[x_idx].size += m_data[y_idx].size;
+            } else {
+                m_data[x_idx].parent = y_idx;
+                m_data[y_idx].size += m_data[x_idx].size;
+            }
+        }
+        inline size_t size() const {
+            return m_size;
+        }
+    private:
+        inline size_t find_impl(const T& elem){
+            size_t idx = m_size;
+            for(size_t i = 0; i < m_size; i++){
+                if(m_data[i].content == elem) {
+                    idx = i;
+                    break;
+                }
+            }
+            if(idx < m_size){
+                while(m_data[idx].parent != idx){
+                    idx = m_data[idx].parent;
+                }
+                return idx;
+            }
+            return m_size;
+
+        }
+
     };
 
 }

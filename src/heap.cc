@@ -23,17 +23,10 @@ void cherry_pick_heapify(){
     assert(heap.size() == arr.size());
     for(auto i = size; i > 0; i--){
         auto [k, v] = heap.search(std::get<1>(arr[i - 1]));
-        if(!v){
-            backup.debug_print();
-            heap.debug_print();
-            heap.debug_print_full();
-        }
         assert(v != nullptr && "inserted value not found in heap");
         assert(*v == std::get<1>(arr[i - 1]) && "found value is different than what was inserted");
         assert(k == std::get<0>(arr[i - 1]) && "key was different");
-        heap.debug_print_full();
         assert(heap.delete_element(v) && "failed to delete element");
-        heap.debug_print_full();
     }
     assert(heap.empty());
 }
