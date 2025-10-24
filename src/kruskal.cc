@@ -47,4 +47,7 @@ int main(void){
         union_find.unionize(*v, *w);
     }
     std::ranges::for_each(tree, [](edge_t* e) { std::println("{}", e->edge_data.dijkstra_score); });
+
+    tree = gr::kruskal_mst(gr);
+    std::ranges::for_each(tree, [](edge_t* e) { std::println("{}", e->edge_data.dijkstra_score); });
 }

@@ -4,10 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <algorithm>
-#include <print>
 #include <datatypes.hpp>
-#include <format>
-#include <iostream>
 #include <limits>
 #include <deque>
 #include <list>
@@ -561,6 +558,34 @@ namespace gr {
                     }
                 }
             }
+        }
+        return tree;
+    }
+    template <typename T, typename E,
+             typename G = Graph<T, E>,
+             typename N = G::node_t,
+             typename ED = G::edge_t,
+             typename DData = G::dijkstra_data_t>
+    inline std::vector<ED*> kruskal_mst(Graph<T, E>& gr) {
+        static_assert(std::is_convertible<T*, gr::ExplorableGraphData*>::value, "T must be derived from gr::ExplorableGraphData");
+        static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from gr::DijkstraEdge");
+        std::vector<N*> vertices{ gr.nodes.size() };
+        size_t i = 0;
+        for(auto& n : gr.nodes){
+            vertices[i++] = &n;
+        }
+        std::vector<ED*> tree{};
+        dt::UnionFind<N*> union_find{ vertices };
+
+        gr.edges.sort([](ED a, ED b) { return a.edge_data.dijkstra_score < b.edge_data.dijkstra_score; });
+
+        for(ED& e : gr.edges){
+            auto v = union_find.find(e.tail);
+            auto w = union_find.find(e.head);
+            if(v != w) {
+                tree.push_back(&e);
+            }
+            union_find.unionize(*v, *w);
         }
         return tree;
     }
