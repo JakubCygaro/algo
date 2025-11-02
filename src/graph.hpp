@@ -531,16 +531,18 @@ namespace gr {
         static_assert(std::is_convertible<E*, DijkstraEdge*>::value, "E must be derived from gr::DijkstraEdge");
         using edge_t = ED;
         using node_t = N;
-        dt::MinHeap<size_t, node_t*> heap;
+        constexpr const size_t INF = std::numeric_limits<size_t>::max();
 
         std::vector<edge_t*> tree{};
         std::vector<node_t*> x = { start };
+        dt::MinHeap<size_t, node_t*> heap;
         x[0]->node_data.explored = true;
 
-        constexpr const size_t INF = std::numeric_limits<size_t>::max();
         for(edge_t* edge : x[0]->edges){
-            edge->head->node_data.winner = edge;
-            heap.insert(edge->edge_data.dijkstra_score, edge->head);
+            auto* v = edge->head != x[0] ? edge->head : edge->tail;
+            assert(v && "edge with null endpoint");
+            v->node_data.winner = edge;
+            heap.insert(edge->edge_data.dijkstra_score, v);
         }
         for(node_t& node : gr.nodes){
             if(&node != x[0] && !node.node_data.winner){
@@ -549,23 +551,22 @@ namespace gr {
         }
         while(!heap.empty()){
             auto [score, w] = heap.extract();
-            if(!w || w->node_data.explored) continue;
+            assert(w && "extracted node was null");
+            if(w->node_data.explored) continue;
             x.push_back(w);
             tree.push_back(w->node_data.winner);
             w->node_data.explored = true;
 
             for(auto* e : w->edges){
-                if(e->tail == w && !e->head->node_data.explored){
-                    size_t cost = INF;
-                    // if the winner of head is NULL, cost is INF
-                    if(!e->head->node_data.winner)
-                        cost = INF;
-                    else
-                        cost = e->head->node_data.winner->edge_data.dijkstra_score;
+                auto* y = e->head != w ? e->head : e->tail;
+                if(y){
+                    // if the winner of y is NULL, cost is INF
+                    size_t cost = y->node_data.winner ? y->node_data.winner->edge_data.dijkstra_score : INF;
+
                     if(e->edge_data.dijkstra_score < cost){
-                        heap.delete_element(&e->head);
-                        e->head->node_data.winner = e;
-                        heap.insert(e->edge_data.dijkstra_score, e->head);
+                        heap.delete_element(&y);
+                        y->node_data.winner = e;
+                        heap.insert(e->edge_data.dijkstra_score, y);
                     }
                 }
             }
