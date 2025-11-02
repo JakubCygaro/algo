@@ -2,6 +2,7 @@
 #define GRAPH_HPP
 
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <algorithm>
 #include <datatypes.hpp>
@@ -41,6 +42,16 @@ namespace gr {
             Node* tail{};
             Node* head{};
             E edge_data;
+            inline bool operator==(const Edge& other) const noexcept {
+                auto ret = (
+                        tail == other.tail &&
+                        head == other.head
+                        );
+                if constexpr (std::equality_comparable<E>) {
+                    ret &= edge_data == other.edge_data;
+                }
+                return ret;
+            }
         };
 
         using node_t = Node;
@@ -306,8 +317,8 @@ namespace gr {
     }
     struct DijkstraEdge {
         std::size_t dijkstra_score{};
-        DijkstraEdge(std::size_t s) : dijkstra_score(s){}
-        DijkstraEdge() {}
+        inline DijkstraEdge(std::size_t s) : dijkstra_score(s){}
+        inline DijkstraEdge() {}
     };
     template <typename T, typename E,
              typename G = Graph<T, E>,

@@ -12,67 +12,73 @@ target_compile_options(cpp_std_23
 target_compile_definitions(cpp_std_23
     INTERFACE $<$<CONFIG:Testing>:-DTEST_INTERNALS>
 )
+add_library(common STATIC
+    ${CMAKE_SOURCE_DIR}/src/common.cc
+)
+target_link_libraries(common
+    PUBLIC cpp_std_23
+)
 
 add_executable(merge src/merge.cc)
-target_link_libraries(merge PRIVATE cpp_std_23)
+target_link_libraries(merge PRIVATE common)
 add_test(NAME merge_sort COMMAND merge)
 
 add_executable(quick src/quick.cc)
-target_link_libraries(quick PRIVATE cpp_std_23)
+target_link_libraries(quick PRIVATE common)
 add_test(NAME quick_sort COMMAND quick)
 
 add_executable(rselect src/rselect.cc)
-target_link_libraries(rselect PRIVATE cpp_std_23)
+target_link_libraries(rselect PRIVATE common)
 add_test(NAME rselect_selection COMMAND rselect)
 
 add_executable(dselect src/dselect.cc)
-target_link_libraries(dselect PRIVATE cpp_std_23)
+target_link_libraries(dselect PRIVATE common)
 add_test(NAME dselect_selection COMMAND dselect)
 
 add_executable(graph_connection_dfs_bfs src/graph_connection.cc)
-target_link_libraries(graph_connection_dfs_bfs PRIVATE cpp_std_23)
+target_link_libraries(graph_connection_dfs_bfs PRIVATE common)
 add_test(NAME graph_connection_dfs_bfs COMMAND graph_connection_dfs_bfs)
 
 add_executable(dfs_topo src/dfs_topo.cc)
-target_link_libraries(dfs_topo PRIVATE cpp_std_23)
+target_link_libraries(dfs_topo PRIVATE common)
 add_test(NAME dfs_topo COMMAND dfs_topo)
 
 add_executable(graph_scc src/graph_scc.cc)
-target_link_libraries(graph_scc PRIVATE cpp_std_23)
+target_link_libraries(graph_scc PRIVATE common)
 add_test(NAME graph_scc COMMAND graph_scc)
 
 add_executable(dijkstra src/dijkstra.cc)
-target_link_libraries(dijkstra PRIVATE cpp_std_23)
+target_link_libraries(dijkstra PRIVATE common)
 add_test(NAME dijkstra COMMAND dijkstra)
 
 add_executable(heap src/heap.cc)
-target_link_libraries(heap PRIVATE cpp_std_23)
+target_link_libraries(heap PRIVATE common)
 add_test(NAME heap COMMAND heap)
 
 add_executable(inplace_heap_sort src/inplace_heap_sort.cc)
-target_link_libraries(inplace_heap_sort PRIVATE cpp_std_23)
+target_link_libraries(inplace_heap_sort PRIVATE common)
 add_test(NAME inplace_heap_sort COMMAND inplace_heap_sort)
 
 add_executable(tree src/tree.cc)
-target_link_libraries(tree PRIVATE cpp_std_23)
+target_link_libraries(tree PRIVATE common)
 add_test(NAME tree COMMAND tree)
 
 add_executable(hashmap src/hashmap.cc)
-target_link_libraries(hashmap PRIVATE cpp_std_23)
+target_link_libraries(hashmap PRIVATE common)
 add_test(NAME hashmap COMMAND hashmap)
 
 add_executable(bloom_filter src/bloom_filter.cc)
-target_link_libraries(bloom_filter PRIVATE cpp_std_23)
+target_link_libraries(bloom_filter PRIVATE common)
 add_test(NAME bloom_filter COMMAND bloom_filter)
 
 add_executable(huffman src/huffman.cc)
-target_link_libraries(huffman PRIVATE cpp_std_23)
+target_link_libraries(huffman PRIVATE common)
 add_test(NAME huffman COMMAND huffman)
 
 add_executable(prim src/prim.cc)
-target_link_libraries(prim PRIVATE cpp_std_23)
+target_link_libraries(prim PRIVATE common)
 add_test(NAME prim COMMAND prim)
 
 add_executable(kruskal src/kruskal.cc)
-target_link_libraries(kruskal PRIVATE cpp_std_23)
+target_link_libraries(kruskal PRIVATE common)
 add_test(NAME kruskal COMMAND kruskal)
