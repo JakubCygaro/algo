@@ -63,10 +63,8 @@ std::vector<edge_t*> setup_graph_with_answer(graph_t& gr)
         };
         if (std::find_if(gr.edges.begin(), gr.edges.end(), [&](edge_t& gr_e) {
                 return (
-                            gr_e.head == e.head ||
-                            gr_e.head == e.tail ||
-                            gr_e.tail == e.head ||
-                            gr_e.tail == e.tail
+                            gr_e == e ||
+                            gr_e == e.rev()
                        );
             })
             == gr.edges.end()) {

@@ -10,12 +10,16 @@
 #include <deque>
 #include <limits>
 #include <list>
-#include <print>
 #include <stack>
 #include <stdexcept>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 namespace gr {
+class NamedGraphData {
+public:
+    char name{};
+};
 class ExplorableGraphData {
 public:
     bool explored {};
@@ -50,6 +54,15 @@ public:
                 ret &= edge_data == other.edge_data;
             }
             return ret;
+        }
+        // get a new edge in the reverse direction to this one
+        inline  Edge rev() const noexcept {
+            // hihi
+            return std::remove_pointer_t<decltype(this)> {
+                .tail = this->head,
+                .head = this->tail,
+                .edge_data = this->edge_data,
+            };
         }
     };
 
@@ -180,6 +193,22 @@ public:
             .nodes = std::move(nodes),
             .edges = std::move(edges)
         };
+    }
+
+    Node* add_node(Node&& n) {
+        this->nodes.push_back(std::move(n));
+        return &this->nodes.back();
+    }
+    Node* add_node(Node n) {
+        return add_node(std::move(n));
+    }
+    Edge* connect_nodes(const Node* a, const Node* b){
+        Edge e = {
+            .tail = a,
+            .head = b,
+        };
+        this->edges.push_back(std::move(e));
+        return &this->edges.back();
     }
 };
 template <typename T, typename N = Graph<T>::node_t>

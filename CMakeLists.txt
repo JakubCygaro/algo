@@ -82,3 +82,7 @@ add_test(NAME prim COMMAND prim)
 add_executable(kruskal src/kruskal.cc)
 target_link_libraries(kruskal PRIVATE common)
 add_test(NAME kruskal COMMAND kruskal)
+
+add_executable(wis src/wis.cc)
+target_link_libraries(wis PRIVATE common)
+add_test(NAME wis COMMAND wis)
