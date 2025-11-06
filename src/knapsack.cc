@@ -1,17 +1,17 @@
 #include <algorithm>
 #include <cassert>
-#include <vector>
 #include <print>
+#include <vector>
 struct Item {
-    double val {};
+    size_t val {};
     size_t sz {};
 };
 int main(void)
 {
-    const int capacity = 10;
-    Item items[] = { { 3.0, 4 }, { 2.0, 3 }, { 4.0, 2 }, { 4.0, 3 } };
+    const int capacity = 6;
+    Item items[] = { { 3, 4 }, { 2, 3 }, { 4, 2 }, { 4, 3 } };
     constexpr const size_t sz = (sizeof items / sizeof(Item));
-    std::vector<std::vector<double>> cache;
+    std::vector<std::vector<decltype(Item::val)>> cache;
     cache.resize(sz + 1);
     for (auto& c : cache) {
         c.resize(capacity + 1);
@@ -37,4 +37,16 @@ int main(void)
     auto solution = cache.back().back();
     std::println("{}", cache);
     std::println("{}", solution);
+
+    std::vector<size_t> path;
+
+    size_t c = capacity;
+    int i = sz;
+    for (; i >= 1; i--) {
+        if (items[i - 1].sz <= c && cache[i - 1][c - items[i - 1].sz] + items[i - 1].val >= cache[i - 1][c]) {
+            path.push_back(i - 1);
+            c = c - items[i - 1].sz;
+        }
+    }
+    std::println("{}", path);
 }
