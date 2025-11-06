@@ -1,9 +1,8 @@
 #include "common.hpp"
 #include <algorithm>
 #include <cstddef>
-#include <numeric>
+#include <cstdlib>
 #include <print>
-#include <random>
 #include <vector>
 
 template <typename T>
@@ -43,18 +42,22 @@ std::pair<std::vector<int>, int> gen_nodes_with_answer()
     if (!sz)
         return { {}, -1 };
 
-    constexpr const int base = 1000;
+    constexpr const int base = 100;
+    int ans = 0;
     std::vector<int> nodes;
     for (auto i = 0; i < sz; i++) {
-        nodes.push_back(base + common::get_random_in_range(0, 50));
+        nodes.push_back(common::get_random_in_range(0, 80));
     }
-    int ans = std::accumulate(nodes.begin(), nodes.end(), 0);
-
-    for (auto i = 0; i < common::get_random_in_range(10, 30); i++){
-        nodes.push_back(common::get_random_in_range(1, 25));
+    for (auto i = 0; i < sz;){
+        if (common::get_random_in_range(0, 100) >= 40){
+            nodes[i] += base;
+            ans += nodes[i];
+            i = i + 2;
+        } else {
+            nodes[i] /= 2;
+            i = i + 1;
+        }
     }
-
-    std::shuffle(nodes.begin(), nodes.end(), std::default_random_engine());
 
     return { nodes, ans };
 }
@@ -62,18 +65,23 @@ std::pair<std::vector<int>, int> gen_nodes_with_answer()
 void test_mwis(void){
     auto [n, ans] = gen_nodes_with_answer();
     auto [guess_path, guess_ans] = mwis(n);
-    std::println("{} {}", ans, guess_ans);
-    assert(ans == guess_ans);
+    if(n.size() == 0){
+        assert(guess_path.size() == 0);
+    } else {
+        assert(ans <= guess_ans);
+        auto ans_from_path = 0;
+        size_t prev = guess_path.front() + 2;
+        for(size_t step : guess_path){
+            assert(step - prev > 1);
+            prev = step;
+            ans_from_path += n[step];
+        }
+        assert(ans_from_path == guess_ans);
+    }
 }
 int main(void)
 {
-    test_mwis();
-    // const std::vector<int> input = { 1, 2, 5, 1, 5, 6 };
-    //
-    // auto s = mwis(input);
-    //
-    // std::println("{}", input);
-    // std::println("{}", s);
-
+    for(auto i = 0; i < 100; i++)
+        test_mwis();
     return 0;
 }
