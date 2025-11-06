@@ -72,7 +72,7 @@ void test_mwis(void){
         auto ans_from_path = 0;
         size_t prev = guess_path.front() + 2;
         for(size_t step : guess_path){
-            assert(step - prev > 1);
+            assert(prev - step > 1);
             prev = step;
             ans_from_path += n[step];
         }

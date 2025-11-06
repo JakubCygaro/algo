@@ -86,3 +86,7 @@ add_test(NAME kruskal COMMAND kruskal)
 add_executable(wis src/wis.cc)
 target_link_libraries(wis PRIVATE common)
 add_test(NAME wis COMMAND wis)
+
+add_executable(knapsack src/knapsack.cc)
+target_link_libraries(knapsack PRIVATE common)
+add_test(NAME knapsack COMMAND knapsack)
