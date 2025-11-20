@@ -90,3 +90,7 @@ add_test(NAME wis COMMAND wis)
 add_executable(knapsack src/knapsack.cc)
 target_link_libraries(knapsack PRIVATE common)
 add_test(NAME knapsack COMMAND knapsack)
+
+add_executable(sequence_alignment src/sequence_alignment.cc)
+target_link_libraries(sequence_alignment PRIVATE common)
+add_test(NAME sequence_alignment COMMAND sequence_alignment)
