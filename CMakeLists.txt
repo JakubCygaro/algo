@@ -94,3 +94,7 @@ add_test(NAME knapsack COMMAND knapsack)
 add_executable(sequence_alignment src/sequence_alignment.cc)
 target_link_libraries(sequence_alignment PRIVATE common)
 add_test(NAME sequence_alignment COMMAND sequence_alignment)
+
+add_executable(optimal_search_tree src/optimal_search_tree.cc)
+target_link_libraries(optimal_search_tree PRIVATE common)
+add_test(NAME optimal_search_tree COMMAND optimal_search_tree)

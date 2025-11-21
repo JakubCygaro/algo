@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <graph.hpp>
+#include <random>
 
 namespace common {
 
