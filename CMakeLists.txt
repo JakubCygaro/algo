@@ -98,3 +98,7 @@ add_test(NAME sequence_alignment COMMAND sequence_alignment)
 add_executable(optimal_search_tree src/optimal_search_tree.cc)
 target_link_libraries(optimal_search_tree PRIVATE common)
 add_test(NAME optimal_search_tree COMMAND optimal_search_tree)
+
+add_executable(bellman_ford src/bellman_ford.cc)
+target_link_libraries(bellman_ford PRIVATE common)
+add_test(NAME bellman_ford COMMAND bellman_ford)
