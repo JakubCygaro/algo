@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <optional>
 #include <print>
 #include <vector>
 struct Node {
@@ -31,7 +32,7 @@ int main(void) {
 
     for(size_t i = 1; i <= cache_sz; i++)
         cache[i][i - 1] = 0;
-
+    std::vector<int> roots{};
     for(size_t s = 0; s < N; s++){
         for(size_t i = 1; i <= N - s; i++){
             int freq_sum{};
@@ -45,7 +46,9 @@ int main(void) {
                 assert(r+1 < cache_sz);
                 assert(i+s < cache_sz);
                 auto tmp = cache[i][r-1] + cache[r+1][i+s];
-                min = std::min(min, tmp);
+                if(tmp < min) {
+                    min = tmp;
+                }
             }
             cache[i][i+s] = freq_sum + min;
         }
@@ -59,7 +62,9 @@ int main(void) {
     }
     auto sol = cache[1][N];
 
+
     std::println("{}", sol);
+    std::println("{}", roots);
 
     std::for_each(nodes.begin(), nodes.end(), [](auto n){ delete n; });
 }
