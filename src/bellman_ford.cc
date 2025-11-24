@@ -5,23 +5,23 @@
 #include <string>
 #include <unordered_map>
 
-struct BFEdge {
+struct FWEdge {
     int len {};
-    BFEdge(int l)
+    FWEdge(int l)
         : len(l)
     {
     }
-    BFEdge() { };
+    FWEdge() { };
 };
-struct BFNode {
+struct FWNode {
     char name {};
-    gr::Graph<BFNode, BFEdge>::Node * pred{};
-    BFNode(char n)
+    gr::Graph<FWNode, FWEdge>::Node * pred{};
+    FWNode(char n)
         : name(n) { };
-    BFNode() { };
+    FWNode() { };
 };
 
-using graph_t = gr::Graph<BFNode, BFEdge>;
+using graph_t = gr::Graph<FWNode, FWEdge>;
 using edge_t = graph_t::edge_t;
 using node_t = graph_t::node_t;
 

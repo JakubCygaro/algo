@@ -102,3 +102,7 @@ add_test(NAME optimal_search_tree COMMAND optimal_search_tree)
 add_executable(bellman_ford src/bellman_ford.cc)
 target_link_libraries(bellman_ford PRIVATE common)
 add_test(NAME bellman_ford COMMAND bellman_ford)
+
+add_executable(floyd_warshall src/floyd_warshall.cc)
+target_link_libraries(floyd_warshall PRIVATE common)
+add_test(NAME floyd_warshall COMMAND floyd_warshall)
