@@ -4,9 +4,7 @@
 #include <ctime>
 #include <utility>
 #include <vector>
-
 #include "common.hpp"
-
 
 size_t partition(int* array, int left, int right, int pivot){
 
