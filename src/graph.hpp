@@ -664,6 +664,93 @@ inline std::vector<ED*> kruskal_mst(Graph<T, E>& gr)
     }
     return tree;
 }
+struct FWEdge {
+    int len {};
+    FWEdge(int l)
+        : len(l)
+    {
+    }
+    FWEdge() { };
+};
+struct FWNode {
+    char name {};
+    Graph<FWNode, FWEdge>::Node* pred {};
+    FWNode(char n)
+        : name(n) { };
+    FWNode() { };
+};
+namespace {
+    template<typename T>
+    T add_with_no_over_under_flow(const T& a, const T& b){
+        constexpr const T PLUS_INF = std::numeric_limits<T>::max();
+        constexpr const T MINUS_INF = std::numeric_limits<T>::min();
+        T sum = a + b;
+        if(a > 0 && b > 0 && sum < 0) return PLUS_INF;
+        if(a < 0 && b < 0 && sum > 0) return MINUS_INF;
+        return sum;
+    }
+}
+template <typename T, typename E,
+    typename G = Graph<T, E>,
+    typename N = G::node_t,
+    typename ED = G::edge_t,
+    typename DData = G::dijkstra_data_t>
+inline std::optional<std::vector<ED*>> floyd_warshall_paths(Graph<T, E>& graph, N* src_n, N* dst_n)
+{
+    using node_t = N;
+    using edge_t = ED;
+    const auto Num = graph.nodes.size();
+    constexpr const auto INF = std::numeric_limits<int>::max();
+    std::vector<node_t*> nodes {};
+    size_t src {}, dst {};
+    size_t count = 0;
+    for (auto& v : graph.nodes) {
+        nodes.push_back(&v);
+        if(&v == src_n) src = count;
+        if(&v == dst_n) dst = count;
+        count++;
+    }
+
+    int cache[Num + 1][Num][Num];
+    for (auto i = 0ul; i < Num + 1; i++) {
+        for (auto j = 0ul; j < Num; j++) {
+            for (auto k = 0ul; k < Num; k++) {
+                cache[i][j][k] = INF;
+            }
+        }
+    }
+    // base case, k = 0
+    for (auto v = 0ul; v < Num; v++) {
+        for (auto w = 0ul; w < Num; w++) {
+            if (v == w) {
+                cache[0][v][w] = 0;
+            } else if (auto f = std::find_if(graph.edges.begin(), graph.edges.end(), [&](edge_t& e) {
+                           return e.tail == nodes[v] && e.head == nodes[w];
+                       });
+                f != graph.edges.end()) {
+                cache[0][v][w] = f->edge_data.len;
+            } else {
+                cache[0][v][w] = INF;
+            }
+        }
+    }
+    for (auto k = 1ul; k <= Num; k++) {
+        for (auto v = 0ul; v <= Num; v++) {
+            for (auto w = 0ul; w <= Num; w++) {
+                auto tmp = add_with_no_over_under_flow<int>(cache[k - 1][v][k], cache[k - 1][k][w]);
+                cache[k][v][w] = std::min(
+                    cache[k - 1][v][w],
+                    tmp);
+            }
+        }
+    }
+    for (auto v = 0ul; v < Num; v++) {
+        if (cache[Num][v][v] < 0) {
+            return std::nullopt;
+        }
+    }
+    auto sol = cache[Num][src][dst];
+}
 }
 
 #endif
