@@ -106,3 +106,7 @@ add_test(NAME bellman_ford COMMAND bellman_ford)
 add_executable(floyd_warshall src/floyd_warshall.cc)
 target_link_libraries(floyd_warshall PRIVATE common)
 add_test(NAME floyd_warshall COMMAND floyd_warshall)
+
+add_executable(insertion src/insertion.cc)
+target_link_libraries(insertion PRIVATE common)
+add_test(NAME insertion COMMAND insertion)

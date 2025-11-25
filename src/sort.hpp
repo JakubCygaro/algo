@@ -150,6 +150,19 @@ void inplace_heap_sort(std::vector<T>& arr){
         sz = extract_min(arr, sz);
     }
 }
+template<typename T>
+void insertion_sort(std::vector<T>& arr){
+    for(auto j = 2ul; j <= arr.size(); j++){
+        auto i = j - 1;
+        while(i > 0){
+            if(arr[i - 1] > arr[j - 1]){
+                std::swap(arr[i-1], arr[j-1]);
+                j--;
+            }
+            i--;
+        }
+    }
+}
 }
 
 #endif
