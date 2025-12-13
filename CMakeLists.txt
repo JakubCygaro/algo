@@ -114,3 +114,7 @@ add_test(NAME insertion COMMAND insertion)
 add_executable(maximum_subarray src/maximum_subarray.cc)
 target_link_libraries(maximum_subarray PRIVATE common)
 add_test(NAME maximum_subarray COMMAND maximum_subarray)
+
+add_executable(maximum_subarray_linear src/maximum_subarray_linear.cc)
+target_link_libraries(maximum_subarray_linear PRIVATE common)
+add_test(NAME maximum_subarray_linear COMMAND maximum_subarray_linear)
