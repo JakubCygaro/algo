@@ -110,3 +110,7 @@ add_test(NAME floyd_warshall COMMAND floyd_warshall)
 add_executable(insertion src/insertion.cc)
 target_link_libraries(insertion PRIVATE common)
 add_test(NAME insertion COMMAND insertion)
+
+add_executable(maximum_subarray src/maximum_subarray.cc)
+target_link_libraries(maximum_subarray PRIVATE common)
+add_test(NAME maximum_subarray COMMAND maximum_subarray)
