@@ -118,3 +118,11 @@ add_test(NAME maximum_subarray COMMAND maximum_subarray)
 add_executable(maximum_subarray_linear src/maximum_subarray_linear.cc)
 target_link_libraries(maximum_subarray_linear PRIVATE common)
 add_test(NAME maximum_subarray_linear COMMAND maximum_subarray_linear)
+
+add_executable(matrix src/matrix.cc)
+target_link_libraries(matrix PRIVATE common)
+add_test(NAME matrix COMMAND matrix)
+
+add_executable(counting_sort src/counting_sort.cc)
+target_link_libraries(counting_sort PRIVATE common)
+add_test(NAME counting_sort COMMAND counting_sort)
