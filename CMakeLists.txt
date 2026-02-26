@@ -126,3 +126,7 @@ add_test(NAME matrix COMMAND matrix)
 add_executable(counting_sort src/counting_sort.cc)
 target_link_libraries(counting_sort PRIVATE common)
 add_test(NAME counting_sort COMMAND counting_sort)
+
+add_executable(linked_list src/linked_list.cc)
+target_link_libraries(linked_list PRIVATE common)
+add_test(NAME linked_list COMMAND linked_list)
