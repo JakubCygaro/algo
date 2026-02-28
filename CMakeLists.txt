@@ -130,3 +130,7 @@ add_test(NAME counting_sort COMMAND counting_sort)
 add_executable(linked_list src/linked_list.cc)
 target_link_libraries(linked_list PRIVATE common)
 add_test(NAME linked_list COMMAND linked_list)
+
+add_executable(rod_cutting src/rod_cutting.cc)
+target_link_libraries(rod_cutting PRIVATE common)
+add_test(NAME rod_cutting COMMAND rod_cutting)
