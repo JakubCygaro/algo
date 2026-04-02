@@ -194,13 +194,69 @@ public:
                     }
                 }
             }
-        } else {
-            if (x->c[i]->n == B - 1) {
-                auto sibling = 0;
+        }
+        // case 3
+        else {
+            auto x_c = x->c[i];
+            if (x_c->n == B - 1) {
+                int sibling = -1;
+                bool right = false;
+                bool both = false;
+                // check right sibling
+                if (i < x->n - 1 && x->c[i + 1]->n >= B) {
+                    sibling = i + 1;
+                    right = true;
+                }
+                // check left sibling
                 if (i > 0 && x->c[i - 1]->n >= B) {
                     sibling = i - 1;
-                } else if (i < x->n - 1 && x->c[i + 1]->n >= B) {
-                    sibling = i + 1;
+                    if (right)
+                        both = true;
+                }
+                if (sibling != -1) {
+                    auto s = x->c[sibling];
+                    // case 3b
+                    if (both) {
+
+                    } else if (right) {
+                        // move key from root into x_c
+                        x_c->k[x_c->n] = x->k[i];
+                        // u->c[u->n+1] = x->c[i];
+                        x_c->n++;
+
+                        // move key from right sibling into root
+                        x->k[i] = s->k[0];
+                        x_c->c[x_c->n + 1] = s->c[0];
+                        // shift left keys...
+                        for (auto j = 1; j < s->n; j++) {
+                            s->k[j - 1] = s->k[j];
+                        }
+                        // ...and children of sibling
+                        for (auto j = 1; j < s->n + 1; j++) {
+                            s->c[j - 1] = s->c[j];
+                        }
+                        s->n--;
+
+                    } else {
+                        // move key from root into x_c
+                        x_c->k[x_c->n] = x->k[i];
+                        // u->c[u->n+1] = x->c[i];
+                        x_c->n++;
+
+                        // move key from left sibling into root
+                        x->k[i] = s->k[s->n - 1];
+                        // shift right x_c keys
+                        for (int j = x_c->n; j >= 0; j--) {
+                            x_c->k[j + 1] = x_c->k[j];
+                        }
+                        // ...and children of x_c
+                        for (int j = x_c->n + 1; j >= 0; j--) {
+                            x_c->c[j + 1] = x_c->c[j];
+                        }
+                        // move child of sibling into x_c
+                        x_c->c[0] = s->c[s->n];
+                        s->n--;
+                    }
                 }
             }
             remove_impl(key, x->c[i]);
