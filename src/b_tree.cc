@@ -69,7 +69,7 @@ public:
                 z->c[j] = y->c[j + B];
             }
         }
-        y->n = B;
+        y->n = B - 1;
         for (auto j = x->n; j > i; j--) {
             x->c[j + 1] = x->c[j];
         }
@@ -77,7 +77,7 @@ public:
         for (int j = x->n - 1; j >= i; j--) {
             x->k[j + 1] = x->k[j];
         }
-        x->k[i] = y->k[B];
+        x->k[i] = y->k[B-1];
         x->n++;
     }
     void insert(K key)
@@ -209,14 +209,37 @@ public:
                 }
                 // check left sibling
                 if (i > 0 && x->c[i - 1]->n >= B) {
-                    sibling = i - 1;
-                    if (right)
+                    if (right) {
                         both = true;
+                    } else {
+                        sibling = i - 1;
+                    }
                 }
                 if (sibling != -1) {
                     auto s = x->c[sibling];
                     // case 3b
                     if (both) {
+                        // move key from root into x_c
+                        x_c->k[x_c->n] = x->k[i];
+                        // u->c[u->n+1] = x->c[i];
+                        x_c->n++;
+
+                        // shift left root keys...
+                        for (auto j = i + 1; j < x->n; j++) {
+                            x->k[j - 1] = x->k[j];
+                        }
+                        // ...and children of sibling
+                        for (auto j = i + 1; j < x_c->n + 1; j++) {
+                            x->c[j - 1] = x->c[j];
+                        }
+                        for (auto j = 0; j < s->n; j++) {
+                            x_c->k[x_c->n + j] = s->k[j];
+                        }
+                        for (auto j = 0; j < s->n + 1; j++) {
+                            x_c->c[x_c->n + 1 + j] = s->c[j];
+                        }
+                        x_c->n += s->n + 1;
+                        delete s;
 
                     } else if (right) {
                         // move key from root into x_c
@@ -259,27 +282,78 @@ public:
                     }
                 }
             }
-            remove_impl(key, x->c[i]);
+            remove_impl(x_c, key);
         }
+    }
+    void print_tree()
+    {
+        print_tree_impl(root, 0);
+    }
+    void print_tree_impl(Node* x, int depth)
+    {
+        for (auto i = 0; i < x->n; i++) {
+            std::printf("%*c %c\n", depth, '-', x->k[i]);
+            if (!x->is_leaf)
+                print_tree_impl(x->c[i], depth + 4);
+        }
+        if (x->n > 0 && !x->is_leaf)
+            print_tree_impl(x->c[x->n], depth + 4);
     }
 };
 
 int main(void)
 {
-    auto tree = BTree<int, 2>();
-    std::set<int> s { };
-    for (auto i = 0; i < 50; i++) {
-        s.insert(common::get_random_in_range(0, 100));
-    }
-    for (const auto e : s) {
-        tree.insert(e);
-    }
-    for (const auto e : s) {
-        auto [p, v] = tree.search(e);
-        if (!p) {
-            auto f = std::format("{} was not present inside B-tree", e);
-            std::printf("%s\n", f.c_str());
-        }
-        assert(p);
-    }
+    auto tree = BTree<char, 2>();
+    // std::set<int> s { };
+    // for (auto i = 0; i < 50; i++) {
+    //     s.insert(common::get_random_in_range(0, 100));
+    // }
+    // for (const auto e : s) {
+    //     tree.insert(e);
+    // }
+    // for (const auto e : s) {
+    //     auto [p, v] = tree.search(e);
+    //     if (!p) {
+    //         auto f = std::format("{} was not present inside B-tree", e);
+    //         std::printf("%s\n", f.c_str());
+    //     }
+    //     assert(p);
+    // }
+    tree.insert(65);
+    tree.insert(66);
+    tree.insert(67);
+    tree.insert(68);
+    tree.insert(69);
+    tree.insert(70);
+    tree.insert(71);
+    tree.insert(72);
+    tree.insert(73);
+    tree.insert(74);
+    tree.insert(75);
+    tree.insert(76);
+    tree.insert(77);
+    tree.insert(78);
+    tree.insert(79);
+    tree.insert(80);
+    tree.insert(81);
+    tree.insert(82);
+    tree.insert(83);
+    tree.insert(84);
+    tree.insert(85);
+    tree.insert(86);
+    tree.insert(87);
+    tree.insert(88);
+    tree.insert(89);
+    tree.insert(90);
+    tree.print_tree();
+
+    // if (auto [p, v] = tree.search('C'); p) {
+    //     for(auto i = 0; i < p->n; i++){
+    //         std::printf("%c ", p->k[i]);
+    //     }
+    //     std::printf("\n");
+    // }
+    tree.remove('F');
+    // auto [p, v] = tree.search('F');
+    // assert(!p);
 }
