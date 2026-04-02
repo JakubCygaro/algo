@@ -77,7 +77,7 @@ public:
         for (int j = x->n - 1; j >= i; j--) {
             x->k[j + 1] = x->k[j];
         }
-        x->k[i] = y->k[B-1];
+        x->k[i] = y->k[B - 1];
         x->n++;
     }
     void insert(K key)
@@ -292,18 +292,18 @@ public:
     void print_tree_impl(Node* x, int depth)
     {
         for (auto i = 0; i < x->n; i++) {
-            std::printf("%*c %c\n", depth, '-', x->k[i]);
+            std::printf("%*s %c\n", x==root ? 0 : depth, x == root ? "" : "-", x->k[i]);
             if (!x->is_leaf)
-                print_tree_impl(x->c[i], depth + 4);
+                print_tree_impl(x->c[i], depth + 2);
         }
         if (x->n > 0 && !x->is_leaf)
-            print_tree_impl(x->c[x->n], depth + 4);
+            print_tree_impl(x->c[x->n], depth + 2);
     }
 };
 
 int main(void)
 {
-    auto tree = BTree<char, 2>();
+    auto tree = BTree<char, 3>();
     // std::set<int> s { };
     // for (auto i = 0; i < 50; i++) {
     //     s.insert(common::get_random_in_range(0, 100));
@@ -354,6 +354,8 @@ int main(void)
     //     std::printf("\n");
     // }
     tree.remove('F');
-    // auto [p, v] = tree.search('F');
-    // assert(!p);
+    auto [p, v] = tree.search('F');
+    assert(!p);
+    std::printf("======\n");
+    tree.print_tree();
 }
