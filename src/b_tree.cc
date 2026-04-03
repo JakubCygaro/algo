@@ -150,6 +150,7 @@ public:
                 for (auto j = i; j < x->n; j++) {
                     x->k[j] = x->k[j + 1];
                 }
+                std::memset(x->k + x->n, 0, sizeof(K) * (2 * B - 1 - x->n));
                 x->n--;
             } else {
                 auto y = x->c[i];
@@ -170,7 +171,7 @@ public:
                     }
                     // case 2c
                     else {
-                        for (auto l = i; i < x->n; i++) {
+                        for (auto l = i; l < x->n; l++) {
                             x->k[l] = x->k[l + 1];
                             x->c[l + 1] = x->c[l + 2];
                         }
@@ -201,24 +202,22 @@ public:
             if (x_c->n == B - 1) {
                 int sibling = -1;
                 bool right = false;
-                bool both = false;
+                bool none = true;
                 // check right sibling
-                if (i < x->n - 1 && x->c[i + 1]->n >= B) {
+                if (i + 1 <= x->n && x->c[i + 1]->n >= B) {
                     sibling = i + 1;
                     right = true;
+                    none = false;
                 }
                 // check left sibling
-                if (i > 0 && x->c[i - 1]->n >= B) {
-                    if (right) {
-                        both = true;
-                    } else {
-                        sibling = i - 1;
-                    }
+                if (!right && i - 1 > 0 && x->c[i - 1]->n >= B) {
+                    sibling = i - 1;
+                    none = false;
                 }
                 if (sibling != -1) {
                     auto s = x->c[sibling];
                     // case 3b
-                    if (both) {
+                    if (none) {
                         // move key from root into x_c
                         x_c->k[x_c->n] = x->k[i];
                         // u->c[u->n+1] = x->c[i];
@@ -228,6 +227,7 @@ public:
                         for (auto j = i + 1; j < x->n; j++) {
                             x->k[j - 1] = x->k[j];
                         }
+                        // std::memset(x->k + x->n, K { }, sizeof(K) * (B - 1 - x->n));
                         // ...and children of sibling
                         for (auto j = i + 1; j < x_c->n + 1; j++) {
                             x->c[j - 1] = x->c[j];
@@ -254,6 +254,7 @@ public:
                         for (auto j = 1; j < s->n; j++) {
                             s->k[j - 1] = s->k[j];
                         }
+                        // std::memset(s->k + s->n, K { }, sizeof(K) * (B - 1 - s->n));
                         // ...and children of sibling
                         for (auto j = 1; j < s->n + 1; j++) {
                             s->c[j - 1] = s->c[j];
@@ -272,6 +273,7 @@ public:
                         for (int j = x_c->n; j >= 0; j--) {
                             x_c->k[j + 1] = x_c->k[j];
                         }
+                        // std::memset(x_c->k + x_c->n, K { }, sizeof(K) * (B - 1 - x_c->n));
                         // ...and children of x_c
                         for (int j = x_c->n + 1; j >= 0; j--) {
                             x_c->c[j + 1] = x_c->c[j];
@@ -291,71 +293,51 @@ public:
     }
     void print_tree_impl(Node* x, int depth)
     {
-        for (auto i = 0; i < x->n; i++) {
-            std::printf("%*s %c\n", x==root ? 0 : depth, x == root ? "" : "-", x->k[i]);
-            if (!x->is_leaf)
+        if (x->is_leaf) {
+            std::printf("%*s", x == root ? 0 : depth, x == root ? "" : "-");
+            for (auto i = 0; i < x->n; i++) {
+                std::printf("%c ", x->k[i]);
+            }
+            std::printf("\n");
+        } else {
+            for (auto i = 0; i < x->n; i++) {
                 print_tree_impl(x->c[i], depth + 2);
+                std::printf("%*s%c\n", x == root ? 0 : depth, x == root ? "" : "-", x->k[i]);
+            }
+            if (x->n > 0)
+                print_tree_impl(x->c[x->n], depth + 2);
         }
-        if (x->n > 0 && !x->is_leaf)
-            print_tree_impl(x->c[x->n], depth + 2);
     }
 };
 
 int main(void)
 {
     auto tree = BTree<char, 3>();
-    // std::set<int> s { };
-    // for (auto i = 0; i < 50; i++) {
-    //     s.insert(common::get_random_in_range(0, 100));
-    // }
-    // for (const auto e : s) {
-    //     tree.insert(e);
-    // }
-    // for (const auto e : s) {
-    //     auto [p, v] = tree.search(e);
-    //     if (!p) {
-    //         auto f = std::format("{} was not present inside B-tree", e);
-    //         std::printf("%s\n", f.c_str());
-    //     }
-    //     assert(p);
-    // }
-    tree.insert(65);
-    tree.insert(66);
-    tree.insert(67);
-    tree.insert(68);
-    tree.insert(69);
-    tree.insert(70);
-    tree.insert(71);
-    tree.insert(72);
-    tree.insert(73);
-    tree.insert(74);
-    tree.insert(75);
-    tree.insert(76);
-    tree.insert(77);
-    tree.insert(78);
-    tree.insert(79);
-    tree.insert(80);
-    tree.insert(81);
-    tree.insert(82);
-    tree.insert(83);
-    tree.insert(84);
-    tree.insert(85);
-    tree.insert(86);
-    tree.insert(87);
-    tree.insert(88);
-    tree.insert(89);
-    tree.insert(90);
-    tree.print_tree();
+    std::set<char> s { };
 
-    // if (auto [p, v] = tree.search('C'); p) {
-    //     for(auto i = 0; i < p->n; i++){
-    //         std::printf("%c ", p->k[i]);
-    //     }
-    //     std::printf("\n");
-    // }
-    tree.remove('F');
-    auto [p, v] = tree.search('F');
-    assert(!p);
+    const auto verify = [&] {
+        for (const auto e : s) {
+            auto [p, i] = tree.search(e);
+            if (!p)
+                std::printf("Key '%c' not present in tree\n", e);
+            assert(p);
+        }
+    };
+    const auto remove_verify = [&](char k) {
+        tree.remove(s.extract(k).value());
+        auto [p, v] = tree.search(k);
+        assert(!p);
+        verify();
+    };
+
+    for (auto i = 'A'; i <= 'Z'; i++) {
+        s.insert(i);
+        tree.insert(i);
+    }
+    tree.print_tree();
+    auto s_cpy = std::set<char>(s);
+    for (auto e : s_cpy)
+        remove_verify(e);
     std::printf("======\n");
     tree.print_tree();
 }
