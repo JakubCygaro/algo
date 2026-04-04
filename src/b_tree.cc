@@ -2,11 +2,8 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <format>
-#include <memory>
-#include <print>
+#include <random>
 #include <set>
-#include <vector>
 
 template <typename K, size_t B>
 class BTree {
@@ -70,15 +67,14 @@ public:
             }
         }
         y->n = B - 1;
-        for (auto j = x->n; j > i; j--) {
-            x->c[j + 1] = x->c[j];
-        }
-        x->c[i + 1] = z;
-        for (int j = x->n - 1; j >= i; j--) {
-            x->k[j + 1] = x->k[j];
-        }
-        x->k[i] = y->k[B - 1];
         x->n++;
+        rsh_c(x, i + 1);
+        x->c[i + 1] = z;
+        rsh_k(x, i);
+        x->k[i] = y->k[B - 1];
+        norm(x);
+        norm(z);
+        norm(y);
     }
     void insert(K key)
     {
@@ -86,6 +82,7 @@ public:
         if (r->n == 2 * B - 1) {
             auto s = Node::make();
             root = s;
+            s->is_leaf = false;
             s->n = 0;
             s->c[0] = r;
             split_child(s, 0);
@@ -103,6 +100,7 @@ public:
             }
             x->k[i + 1] = key;
             x->n++;
+            norm(x);
         } else {
             while (i >= 0 && key < x->k[i]) {
                 i--;
@@ -132,10 +130,47 @@ public:
     int pred(Node* x, K key)
     {
         int j = x->n - 1;
-        while (j >= 0 && x->k[j] > key) {
+        while (j >= 0 && x->k[j] >= key) {
             j--;
         }
         return j;
+    }
+    void lsh_k(Node* x, int start)
+    {
+        for (auto j = start + 1; j < x->n; j++) {
+            x->k[j - 1] = x->k[j];
+        }
+    }
+    void lsh_c(Node* x, int start)
+    {
+        for (auto j = start + 1; j < x->n + 1; j++) {
+            x->c[j - 1] = x->c[j];
+        }
+    }
+    void rsh_k(Node* x, int low, size_t n = 1)
+    {
+        for (auto i = 0; i < n; i++)
+            for (int j = x->n - 1; j >= low; j--) {
+                x->k[j + 1] = x->k[j];
+            }
+    }
+    void rsh_c(Node* x, int low, size_t n = 1)
+    {
+        for (auto i = 0; i < n; i++)
+            for (int j = x->n; j >= low; j--) {
+                x->c[j + 1] = x->c[j];
+            }
+    }
+    void norm(Node* x)
+    {
+        std::memset(x->k + x->n, 0, sizeof(K) * (2 * B - 1 - x->n));
+        // std::memset(x->c + x->n + 1, 0, sizeof(K) * (2 * B - x->n + 1));
+    }
+    void rm_key(Node* x, size_t idx)
+    {
+        lsh_k(x, idx);
+        x->n--;
+        norm(x);
     }
     void remove_impl(Node* x, K key)
     {
@@ -145,14 +180,12 @@ public:
         }
         // found case
         if (i < x->n && key == x->k[i]) {
-            // is leaf case
+            // case 1
             if (x->is_leaf) {
-                for (auto j = i; j < x->n; j++) {
-                    x->k[j] = x->k[j + 1];
-                }
-                std::memset(x->k + x->n, 0, sizeof(K) * (2 * B - 1 - x->n));
-                x->n--;
-            } else {
+                rm_key(x, i);
+            }
+            // case 2
+            else {
                 auto y = x->c[i];
                 // case 2a
                 if (y->n >= B) {
@@ -171,10 +204,8 @@ public:
                     }
                     // case 2c
                     else {
-                        for (auto l = i; l < x->n; l++) {
-                            x->k[l] = x->k[l + 1];
-                            x->c[l + 1] = x->c[l + 2];
-                        }
+                        lsh_k(x, i);
+                        lsh_c(x, i + 1);
                         x->n--;
                         // merge k into y
                         y->k[y->n] = key;
@@ -184,14 +215,17 @@ public:
                             y->k[y->n + l] = z->k[l];
                         }
                         // merge children of z into y
-                        for (auto l = 1; l < z->n + 1; l++) {
-                            y->c[y->n + l] = z->c[l];
+                        for (auto l = 0; l < z->n + 1; l++) {
+                            y->c[y->n + l + 1] = z->c[l];
                         }
                         y->n += z->n;
+                        norm(x);
                         delete z->k;
                         delete z->c;
                         delete z;
                         remove_impl(y, key);
+                        if (x == root && x->n == 0)
+                            root = y;
                     }
                 }
             }
@@ -210,77 +244,105 @@ public:
                     none = false;
                 }
                 // check left sibling
-                if (!right && i - 1 > 0 && x->c[i - 1]->n >= B) {
+                if (!right && i - 1 >= 0 && x->c[i - 1]->n >= B) {
                     sibling = i - 1;
                     none = false;
                 }
-                if (sibling != -1) {
+                // case 3b
+                if (none) {
+                    // has right sibling ?
+                    right = i + 1 <= x->n;
+                    // right = !(i-1 >= 0);
+                    sibling = right ? i + 1 : i - 1;
                     auto s = x->c[sibling];
-                    // case 3b
-                    if (none) {
+                    // merge right sibling
+                    if (right) {
                         // move key from root into x_c
                         x_c->k[x_c->n] = x->k[i];
-                        // u->c[u->n+1] = x->c[i];
                         x_c->n++;
 
-                        // shift left root keys...
-                        for (auto j = i + 1; j < x->n; j++) {
-                            x->k[j - 1] = x->k[j];
-                        }
-                        // std::memset(x->k + x->n, K { }, sizeof(K) * (B - 1 - x->n));
-                        // ...and children of sibling
-                        for (auto j = i + 1; j < x_c->n + 1; j++) {
-                            x->c[j - 1] = x->c[j];
-                        }
+                        // shift k and c of x left, so that sibling pointer is lost
+                        lsh_k(x, i);
+                        lsh_c(x, sibling);
+                        x->n--;
+
+                        // merging right sibling into x_c
                         for (auto j = 0; j < s->n; j++) {
                             x_c->k[x_c->n + j] = s->k[j];
                         }
                         for (auto j = 0; j < s->n + 1; j++) {
-                            x_c->c[x_c->n + 1 + j] = s->c[j];
+                            x_c->c[x_c->n + j] = s->c[j];
                         }
-                        x_c->n += s->n + 1;
-                        delete s;
+                        x_c->n += s->n;
+                    } else {
+                        x_c->n++;
+                        rsh_k(x_c, 0);
+                        // move key from root into x_c
+                        x_c->k[0] = x->k[sibling];
 
-                    } else if (right) {
+                        // shift k and c of x left, so that sibling pointer is lost
+                        lsh_k(x, sibling);
+                        lsh_c(x, sibling);
+
+                        // shrink x
+                        x->n--;
+
+                        // shift x_c to the right making place for merged s
+                        x_c->n += s->n;
+                        rsh_k(x_c, 0, s->n);
+                        rsh_c(x_c, 0, s->n + 1);
+
+                        // merging left sibling into x_c
+                        for (auto j = 0; j < s->n; j++) {
+                            x_c->k[j] = s->k[j];
+                        }
+                        for (auto j = 0; j < s->n + 1; j++) {
+                            x_c->c[j] = s->c[j];
+                        }
+                    }
+                    delete s->k;
+                    delete s->c;
+                    delete s;
+
+                    norm(x_c);
+                    norm(x);
+
+                    if (x == root && x->n == 0)
+                        root = x_c;
+                } else if (sibling != -1) {
+                    auto s = x->c[sibling];
+                    if (right) {
                         // move key from root into x_c
                         x_c->k[x_c->n] = x->k[i];
-                        // u->c[u->n+1] = x->c[i];
                         x_c->n++;
 
                         // move key from right sibling into root
                         x->k[i] = s->k[0];
-                        x_c->c[x_c->n + 1] = s->c[0];
-                        // shift left keys...
-                        for (auto j = 1; j < s->n; j++) {
-                            s->k[j - 1] = s->k[j];
-                        }
-                        // std::memset(s->k + s->n, K { }, sizeof(K) * (B - 1 - s->n));
-                        // ...and children of sibling
-                        for (auto j = 1; j < s->n + 1; j++) {
-                            s->c[j - 1] = s->c[j];
-                        }
-                        s->n--;
+                        // move child from right sibling into x_c
+                        x_c->c[x_c->n] = s->c[0];
 
+                        lsh_k(s, 0);
+                        lsh_c(s, 0);
+
+                        s->n--;
+                        norm(x_c);
+                        norm(s);
                     } else {
-                        // move key from root into x_c
-                        x_c->k[x_c->n] = x->k[i];
-                        // u->c[u->n+1] = x->c[i];
                         x_c->n++;
+                        rsh_k(x_c, 0);
+                        rsh_c(x_c, 0);
+                        // move key from root into x_c
+                        x_c->k[0] = x->k[sibling];
 
                         // move key from left sibling into root
                         x->k[i] = s->k[s->n - 1];
-                        // shift right x_c keys
-                        for (int j = x_c->n; j >= 0; j--) {
-                            x_c->k[j + 1] = x_c->k[j];
-                        }
-                        // std::memset(x_c->k + x_c->n, K { }, sizeof(K) * (B - 1 - x_c->n));
-                        // ...and children of x_c
-                        for (int j = x_c->n + 1; j >= 0; j--) {
-                            x_c->c[j + 1] = x_c->c[j];
-                        }
-                        // move child of sibling into x_c
+
+                        // move child pointer from left sibling into x_c
                         x_c->c[0] = s->c[s->n];
+
                         s->n--;
+                        norm(x_c);
+                        norm(s);
                     }
                 }
             }
@@ -290,6 +352,7 @@ public:
     void print_tree()
     {
         print_tree_impl(root, 0);
+        std::printf("======\n");
     }
     void print_tree_impl(Node* x, int depth)
     {
@@ -315,29 +378,54 @@ int main(void)
     auto tree = BTree<char, 3>();
     std::set<char> s { };
 
+    std::optional<char> last_remove { };
     const auto verify = [&] {
         for (const auto e : s) {
             auto [p, i] = tree.search(e);
-            if (!p)
+            if (!p) {
                 std::printf("Key '%c' not present in tree\n", e);
+                if (last_remove)
+                    std::printf("Last remove was '%c'", *last_remove);
+            }
             assert(p);
         }
     };
     const auto remove_verify = [&](char k) {
+        std::printf("removing '%c'\n", k);
         tree.remove(s.extract(k).value());
+        tree.print_tree();
         auto [p, v] = tree.search(k);
         assert(!p);
         verify();
+        last_remove = k;
+    };
+    const auto insert = [&](char c) {
+        s.insert(c);
+        tree.insert(c);
+    };
+    const auto insert_l = [&](std::initializer_list<char> cs) {
+        for (const auto c : cs) {
+            insert(c);
+        }
     };
 
-    for (auto i = 'A'; i <= 'Z'; i++) {
-        s.insert(i);
-        tree.insert(i);
-    }
+    for (auto i = 'A'; i <= 'Z'; i ++)
+        insert(i);
+
     tree.print_tree();
     auto s_cpy = std::set<char>(s);
-    for (auto e : s_cpy)
-        remove_verify(e);
+    auto rnd = std::vector<char>();
+
+    std::copy(s.begin(), s.end(), std::back_inserter(rnd));
+    std::shuffle(rnd.begin(), rnd.end(), std::default_random_engine());
+
+    for (auto it = rnd.begin(); it != rnd.end(); it++) {
+        remove_verify(*it);
+    }
+
+
+
+
     std::printf("======\n");
     tree.print_tree();
 }
