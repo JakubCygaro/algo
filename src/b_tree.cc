@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <random>
 #include <set>
 
 template <typename K, size_t B>
@@ -24,51 +23,89 @@ class BTree {
             return n;
         }
     };
-    Node* root { };
+    Node* m_root { };
+    std::size_t m_sz { };
 
 public:
     BTree()
     {
-        root = Node::make();
-        root->is_leaf = true;
+        m_root = Node::make();
+        m_root->is_leaf = true;
     }
     BTree(BTree&& other)
     {
-        this->root = other.root;
+        this->m_root = other.m_root;
         other->root = nullptr;
     }
     BTree& operator=(BTree&& other) noexcept
     {
-        this->root = other.root;
-        other.root = nullptr;
+        this->m_root = other.m_root;
+        other.m_root = nullptr;
         return *this;
     }
-    BTree(const BTree& other) = delete;
-    BTree operator=(const BTree& other) = delete;
-
-    auto descend_free(Node* x) -> void
+    BTree(const BTree& other)
     {
-        // if (!x->is_leaf) {
-        //     for (auto i = 0; i < x->n + 1; i++) {
-        //         descend_free(x->c[i]);
-        //     }
-        // }
-        // delete x->c;
-        // delete x->k;
-        // delete x;
+        m_root = Node::make();
+        m_root->is_leaf = true;
+        descend_insert(m_root, other);
+    }
+    BTree& operator=(const BTree& other)
+    {
+        m_root = Node::make();
+        m_root->is_leaf = true;
+        descend_insert(m_root, other);
+        return *this;
     }
 
+    std::size_t size() const
+    {
+        return this->m_sz;
+    }
+    bool empty() const
+    {
+        return size() == 0;
+    }
+
+private:
+    void descend_insert(Node* x, BTree& other) const
+    {
+        if (!x->is_leaf) {
+            for (auto i = 0; i < x->n + 1; i++) {
+                descend_insert(x->c[i]);
+            }
+        }
+        for (auto i = 0; i < x->n; i++) {
+            other.insert(x->k[i]);
+        }
+    }
+    auto descend_free(Node* x) -> void
+    {
+        if (!x->is_leaf) {
+            for (auto i = 0; i < x->n + 1; i++) {
+                descend_free(x->c[i]);
+            }
+        }
+        delete x->c;
+        delete x->k;
+        delete x;
+    }
+
+public:
     ~BTree()
     {
-        descend_free(root);
-        root = nullptr;
+        if (!m_root)
+            return;
+        descend_free(m_root);
+        m_root = nullptr;
     }
     std::pair<Node*, size_t> search(K key)
     {
-        if (!root)
+        if (!m_root)
             return { nullptr, 0 };
-        return search_impl(key, root);
+        return search_impl(key, m_root);
     }
+
+private:
     std::pair<Node*, size_t> search_impl(K key, Node* x)
     {
         auto i = 0;
@@ -103,16 +140,18 @@ public:
         x->c[i + 1] = z;
         rsh_k(x, i);
         x->k[i] = y->k[B - 1];
-        norm(x);
-        norm(z);
-        norm(y);
+        // norm(x);
+        // norm(z);
+        // norm(y);
     }
+
+public:
     void insert(K key)
     {
-        auto r = root;
+        auto r = m_root;
         if (r->n == 2 * B - 1) {
             auto s = Node::make();
-            root = s;
+            m_root = s;
             s->is_leaf = false;
             s->n = 0;
             s->c[0] = r;
@@ -121,19 +160,26 @@ public:
         } else
             insert_nonfull(r, key);
     }
+
+private:
     void insert_nonfull(Node* x, K key)
     {
         int i = x->n - 1;
         if (x->is_leaf) {
             while (i >= 0 && key < x->k[i]) {
+                if (key == x->k[i])
+                    return;
                 x->k[i + 1] = x->k[i];
                 i--;
             }
             x->k[i + 1] = key;
             x->n++;
-            norm(x);
+            this->m_sz++;
+            // norm(x);
         } else {
             while (i >= 0 && key < x->k[i]) {
+                if (key == x->k[i])
+                    return;
                 i--;
             }
             i++;
@@ -146,25 +192,29 @@ public:
             insert_nonfull(x->c[i], key);
         }
     }
+
+public:
     void remove(K key)
     {
-        remove_impl(root, key);
+        remove_impl(m_root, key);
     }
-    int succ(Node* x, K key)
+
+private:
+    std::pair<Node*, int> succ(Node* x, K key)
     {
         int j = 0;
-        while (j < x->n && x->k[j] <= key) {
-            j++;
+        if (!x->is_leaf) {
+            return succ(x->c[j], key);
         }
-        return j;
+        return { x, j };
     }
-    int pred(Node* x, K key)
+    std::pair<Node*, int> pred(Node* x, K key)
     {
         int j = x->n - 1;
-        while (j >= 0 && x->k[j] >= key) {
-            j--;
+        if (!x->is_leaf) {
+            return pred(x->c[j + 1], key);
         }
-        return j;
+        return { x, j };
     }
     void lsh_k(Node* x, int start)
     {
@@ -195,13 +245,12 @@ public:
     void norm(Node* x)
     {
         std::memset(x->k + x->n, 0, sizeof(K) * (2 * B - 1 - x->n));
-        // std::memset(x->c + x->n + 1, 0, sizeof(K) * (2 * B - x->n + 1));
     }
     void rm_key(Node* x, size_t idx)
     {
         lsh_k(x, idx);
         x->n--;
-        norm(x);
+        // norm(x);
     }
     void remove_impl(Node* x, K key)
     {
@@ -220,16 +269,16 @@ public:
                 auto y = x->c[i];
                 // case 2a
                 if (y->n >= B) {
-                    auto j = pred(y, key);
-                    auto key_ = y->k[j];
+                    auto [pn, j] = pred(y, key);
+                    auto key_ = pn->k[j];
                     remove_impl(y, key_);
                     x->k[i] = key_;
                 } else {
                     auto z = x->c[i + 1];
                     // case 2b
                     if (z->n >= B) {
-                        auto j = succ(z, key);
-                        auto key_ = z->k[j];
+                        auto [sn, j] = succ(z, key);
+                        auto key_ = sn->k[j];
                         remove_impl(z, key_);
                         x->k[i] = key_;
                     }
@@ -250,16 +299,20 @@ public:
                             y->c[y->n + l] = z->c[l];
                         }
                         y->n += z->n;
-                        norm(x);
+                        // norm(x);
                         delete z->k;
                         delete z->c;
                         delete z;
                         remove_impl(y, key);
-                        if (x == root && x->n == 0)
-                            root = y;
+                        if (x == m_root && x->n == 0)
+                            m_root = y;
                     }
                 }
             }
+        }
+        // if this is a leaf and we've not found anything then its over
+        else if (x->is_leaf) {
+            return;
         }
         // case 3
         else {
@@ -283,7 +336,6 @@ public:
                 if (none) {
                     // has right sibling ?
                     right = i + 1 <= x->n;
-                    // right = !(i-1 >= 0);
                     sibling = right ? i + 1 : i - 1;
                     auto s = x->c[sibling];
                     // merge right sibling
@@ -335,11 +387,11 @@ public:
                     delete s->c;
                     delete s;
 
-                    norm(x_c);
-                    norm(x);
+                    // norm(x_c);
+                    // norm(x);
 
-                    if (x == root && x->n == 0)
-                        root = x_c;
+                    if (x == m_root && x->n == 0)
+                        m_root = x_c;
                 } else if (sibling != -1) {
                     auto s = x->c[sibling];
                     if (right) {
@@ -356,8 +408,8 @@ public:
                         lsh_c(s, 0);
 
                         s->n--;
-                        norm(x_c);
-                        norm(s);
+                        // norm(x_c);
+                        // norm(s);
                     } else {
                         x_c->n++;
                         rsh_k(x_c, 0);
@@ -372,23 +424,28 @@ public:
                         x_c->c[0] = s->c[s->n];
 
                         s->n--;
-                        norm(x_c);
-                        norm(s);
+                        // norm(x_c);
+                        // norm(s);
                     }
                 }
             }
             remove_impl(x_c, key);
         }
+        this->m_sz--;
     }
+
+public:
     void print_tree()
     {
-        print_tree_impl(root, 0);
+        print_tree_impl(m_root, 0);
         std::printf("======\n");
     }
+
+private:
     void print_tree_impl(Node* x, int depth)
     {
         if (x->is_leaf) {
-            std::printf("%*s", x == root ? 0 : depth, x == root ? "" : "-");
+            std::printf("%*s", x == m_root ? 0 : depth, x == m_root ? "" : "-");
             for (auto i = 0; i < x->n; i++) {
                 std::printf("%c ", x->k[i]);
             }
@@ -396,7 +453,7 @@ public:
         } else {
             for (auto i = 0; i < x->n; i++) {
                 print_tree_impl(x->c[i], depth + 2);
-                std::printf("%*s%c\n", x == root ? 0 : depth, x == root ? "" : "-", x->k[i]);
+                std::printf("%*s%c\n", x == m_root ? 0 : depth, x == m_root ? "" : "-", x->k[i]);
             }
             if (x->n > 0)
                 print_tree_impl(x->c[x->n], depth + 2);
@@ -423,9 +480,11 @@ int main(void)
         }
     };
     const auto remove_verify = [&](char k) {
-        // std::printf("%c ", k);
-        tree.remove(s.extract(k).value());
-        // tree.print_tree();
+        std::printf("%c ", k);
+        if (s.contains(k))
+            tree.remove(s.extract(k).value());
+        else
+            tree.remove(k);
         auto [p, v] = tree.search(k);
         assert(!p);
         verify();
@@ -446,42 +505,27 @@ int main(void)
     for (auto i = 'A'; i <= 'Z'; i++)
         input_data.push_back(i);
 
-    for (auto i = 0; i < 1; i++) {
+    for (auto i = 0; i < 100; i++) {
+        std::printf("-> test %d\n", i + 1);
         s.clear();
-        // tree = BTree<char, 3>();
-        insert_l(
-            { 'V', 'P', 'S', 'Y', 'I', 'R', 'Q', 'A', 'D', 'F', 'H', 'W', 'E', 'M', 'N', 'T', 'G', 'X', 'B', 'Z', 'K', 'U', 'C', 'L', 'O', 'J' });
-        // insert_l({'A', 'D', 'F', 'H', 'L', 'N', 'P'});
-        // remove_verify('D');
-        // // tree.print_tree();
-        // remove_verify('K');
-        // // tree.print_tree();
-        // remove_verify('F');
-        // tree.print_tree();
-        // remove_verify('B');
-        tree.print_tree();
-        remove_verify('P');
-        // std::random_shuffle(input_data.begin(), input_data.end());
-        // std::printf("inserting: ");
-        // for(auto e : input_data){
-        //     std::printf("%c ", e);
-        //     insert(e);
-        // }
-        // std::printf("\n");
-        // tree.print_tree();
-        // auto s_cpy = std::set<char>(s);
+        std::random_shuffle(input_data.begin(), input_data.end());
+        std::printf("\tinserting: ");
+        for (auto e : input_data) {
+            std::printf("%c ", e);
+            insert(e);
+        }
+        std::printf("\n");
         auto rnd = std::vector<char>();
 
         std::copy(s.begin(), s.end(), std::back_inserter(rnd));
         std::random_shuffle(rnd.begin(), rnd.end());
 
-        std::printf("removing: ");
+        std::printf("\tremoving: ");
         for (auto it = rnd.begin(); it != rnd.end(); it++) {
             remove_verify(*it);
         }
-        std::printf("\n");
+        std::printf("\n\n");
+        remove_verify('-');
     }
-
-    // std::printf("======\n");
-    // tree.print_tree();
+    tree = BTree<char, 3>();
 }
