@@ -32,6 +32,37 @@ public:
         root = Node::make();
         root->is_leaf = true;
     }
+    BTree(BTree&& other)
+    {
+        this->root = other.root;
+        other->root = nullptr;
+    }
+    BTree& operator=(BTree&& other) noexcept
+    {
+        this->root = other.root;
+        other.root = nullptr;
+        return *this;
+    }
+    BTree(const BTree& other) = delete;
+    BTree operator=(const BTree& other) = delete;
+
+    auto descend_free(Node* x) -> void
+    {
+        // if (!x->is_leaf) {
+        //     for (auto i = 0; i < x->n + 1; i++) {
+        //         descend_free(x->c[i]);
+        //     }
+        // }
+        // delete x->c;
+        // delete x->k;
+        // delete x;
+    }
+
+    ~BTree()
+    {
+        descend_free(root);
+        root = nullptr;
+    }
     std::pair<Node*, size_t> search(K key)
     {
         if (!root)
@@ -216,7 +247,7 @@ public:
                         }
                         // merge children of z into y
                         for (auto l = 0; l < z->n + 1; l++) {
-                            y->c[y->n + l + 1] = z->c[l];
+                            y->c[y->n + l] = z->c[l];
                         }
                         y->n += z->n;
                         norm(x);
@@ -335,7 +366,7 @@ public:
                         x_c->k[0] = x->k[sibling];
 
                         // move key from left sibling into root
-                        x->k[i] = s->k[s->n - 1];
+                        x->k[sibling] = s->k[s->n - 1];
 
                         // move child pointer from left sibling into x_c
                         x_c->c[0] = s->c[s->n];
@@ -385,15 +416,16 @@ int main(void)
             if (!p) {
                 std::printf("Key '%c' not present in tree\n", e);
                 if (last_remove)
-                    std::printf("Last remove was '%c'", *last_remove);
+                    std::printf("Last remove was '%c'\n", *last_remove);
+                tree.print_tree();
             }
             assert(p);
         }
     };
     const auto remove_verify = [&](char k) {
-        std::printf("removing '%c'\n", k);
+        // std::printf("%c ", k);
         tree.remove(s.extract(k).value());
-        tree.print_tree();
+        // tree.print_tree();
         auto [p, v] = tree.search(k);
         assert(!p);
         verify();
@@ -406,26 +438,50 @@ int main(void)
     const auto insert_l = [&](std::initializer_list<char> cs) {
         for (const auto c : cs) {
             insert(c);
+            tree.print_tree();
         }
     };
 
-    for (auto i = 'A'; i <= 'Z'; i ++)
-        insert(i);
+    std::vector<char> input_data { };
+    for (auto i = 'A'; i <= 'Z'; i++)
+        input_data.push_back(i);
 
-    tree.print_tree();
-    auto s_cpy = std::set<char>(s);
-    auto rnd = std::vector<char>();
+    for (auto i = 0; i < 1; i++) {
+        s.clear();
+        // tree = BTree<char, 3>();
+        insert_l(
+            { 'V', 'P', 'S', 'Y', 'I', 'R', 'Q', 'A', 'D', 'F', 'H', 'W', 'E', 'M', 'N', 'T', 'G', 'X', 'B', 'Z', 'K', 'U', 'C', 'L', 'O', 'J' });
+        // insert_l({'A', 'D', 'F', 'H', 'L', 'N', 'P'});
+        // remove_verify('D');
+        // // tree.print_tree();
+        // remove_verify('K');
+        // // tree.print_tree();
+        // remove_verify('F');
+        // tree.print_tree();
+        // remove_verify('B');
+        tree.print_tree();
+        remove_verify('P');
+        // std::random_shuffle(input_data.begin(), input_data.end());
+        // std::printf("inserting: ");
+        // for(auto e : input_data){
+        //     std::printf("%c ", e);
+        //     insert(e);
+        // }
+        // std::printf("\n");
+        // tree.print_tree();
+        // auto s_cpy = std::set<char>(s);
+        auto rnd = std::vector<char>();
 
-    std::copy(s.begin(), s.end(), std::back_inserter(rnd));
-    std::shuffle(rnd.begin(), rnd.end(), std::default_random_engine());
+        std::copy(s.begin(), s.end(), std::back_inserter(rnd));
+        std::random_shuffle(rnd.begin(), rnd.end());
 
-    for (auto it = rnd.begin(); it != rnd.end(); it++) {
-        remove_verify(*it);
+        std::printf("removing: ");
+        for (auto it = rnd.begin(); it != rnd.end(); it++) {
+            remove_verify(*it);
+        }
+        std::printf("\n");
     }
 
-
-
-
-    std::printf("======\n");
-    tree.print_tree();
+    // std::printf("======\n");
+    // tree.print_tree();
 }
