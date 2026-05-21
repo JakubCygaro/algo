@@ -1,4 +1,7 @@
 #include <cstddef>
+#include <print>
+#include <utility>
+#include <vector>
 template <typename K, typename T>
 class AVLTree {
 private:
@@ -7,11 +10,9 @@ private:
         RIGHT = 1,
         ROOT = -1,
     };
-    enum class Balance : char {
-        LEFT_HEAVY = -1,
-        BALANCED = 0,
-        RIGHT_HEAVY = 1,
-    };
+    const char LEFT_HEAVY = -1;
+    const char BALANCED = 0;
+    const char RIGHT_HEAVY = 1;
     struct Node {
         K key { };
         T data { };
@@ -65,51 +66,51 @@ private:
 private:
     void insert_fixup(Node* z)
     {
-        while (z && z->balance != Balance::BALANCED) {
-            Node* n, *g;
+        while (z && z->balance != BALANCED) {
+            Node *n, *g;
             auto* x = z->parent;
             auto d = z->get_child_dir();
             // update balance factor of parent
-            if (d == Child::RIGTH) {
-                if (x->balance == Balance::RIGHT_HEAVY) {
+            if (d == Child::RIGHT) {
+                if (x->balance == RIGHT_HEAVY) {
                     g = x->parent;
-                    if (z->balance == Balance::LEFT_HEAVY) {
+                    if (z->balance == LEFT_HEAVY) {
                         rotate_right(z);
                         n = rotate_left(x);
                     } else {
                         n = rotate_left(x);
                     }
                 } else {
-                    if (x->balance == Balance::LEFT_HEAVY) {
-                        x->balance = Balance::BALANCED;
+                    if (x->balance == LEFT_HEAVY) {
+                        x->balance = BALANCED;
                         break;
                     }
-                    x->balance = Balance::RIGHT_HEAVY;
+                    x->balance = RIGHT_HEAVY;
                     z = x;
                     continue;
                 }
             } else {
-                if (x->balance == Balance::LEFT_HEAVY) {
+                if (x->balance == LEFT_HEAVY) {
                     g = x->parent;
-                    if (z->balance == Balance::RIGHT_HEAVY) {
+                    if (z->balance == RIGHT_HEAVY) {
                         rotate_left(z);
                         n = rotate_right(x);
                     } else {
                         n = rotate_right(x);
                     }
                 } else {
-                    if (x->balance == Balance::RIGHT_HEAVY) {
-                        x->balance = Balance::BALANCED;
+                    if (x->balance == RIGHT_HEAVY) {
+                        x->balance = BALANCED;
                         break;
                     }
-                    x->balance = Balance::LEFT_HEAVY;
+                    x->balance = LEFT_HEAVY;
                     z = x;
                     continue;
                 }
             }
             n->parent = g;
-            if(g){
-                g->_ord[d] = n;
+            if (g) {
+                g->_ord[(int)d] = n;
                 // d = x->get_child_dir();
                 // if(d == Child::LEFT){
                 //     g->left = n;
@@ -168,12 +169,83 @@ public:
         }
     }
 
+private:
+    void delete_fixup(Node* n)
+    {
+        Node* g { };
+        Node* z { };
+        char b = 0;
+        for (Node* x = n->parent; x != nullptr; x = g) {
+            g = x->parent;
+            auto n_d = n->get_child_dir();
+            if (n_d == Child::LEFT) {
+                if (x->balance == RIGHT_HEAVY) {
+                    z = x->right;
+                    b = z->balance;
+                    if (b < 0) {
+                        rotate_right(z);
+                        n = rotate_left(x);
+                    } else {
+                        n = rotate_left(x);
+                    }
+                } else {
+                    if (x->balance == 0) {
+                        x->balance = RIGHT_HEAVY;
+                        break;
+                    }
+                    n = x;
+                    n->balance = BALANCED;
+                    continue;
+                }
+            } else {
+                if (x->balance == LEFT_HEAVY) {
+                    z = x->left;
+                    b = z->balance;
+                    if (b > 0) {
+                        rotate_left(z);
+                        n = rotate_right(x);
+                    } else {
+                        n = rotate_right(x);
+                    }
+                } else {
+                    if (x->balance == BALANCED) {
+                        x->balance = LEFT_HEAVY;
+                        break;
+                    }
+                    n = x;
+                    n->balance = BALANCED;
+                    continue;
+                }
+            }
+            n->parent = g;
+            if (g) {
+                if (x == g->left) {
+                    g->left = n;
+                } else
+                    g->right = n;
+            } else {
+                this->m_root = n;
+            }
+            if (b == 0)
+                break;
+        }
+    }
+
 public:
     bool delete_element(const K& key)
     {
         auto z = search_impl(key);
         if (!z)
             return false;
+        auto x = z->parent;
+        Node* v = x;
+        if (z->left || z->right)
+            v = transplant(z, z->left ? z->left : z->right);
+        else {
+            x->_ord[z->get_child_dir()] = nullptr;
+        }
+        delete z;
+        delete_fixup(v);
 
         return false;
     }
@@ -235,7 +307,7 @@ private:
 
         return node_y;
     }
-    void transplant(Node* u, Node* v)
+    Node* transplant(Node* u, Node* v)
     {
         if (!u->parent) {
             m_root = v;
@@ -247,11 +319,30 @@ private:
         if (v) {
             v->parent = u->parent;
         }
+        return v;
     }
 
 public:
 };
 int main(void)
 {
-    AVLTree<char, int> t{};
+    AVLTree<char, int> t { };
+    std::vector<std::pair<char, int>> vals = {
+        { 'a', 0 },
+        { 'b', 1 },
+        { 'c', 2 },
+        { 'd', 3 },
+        { 'e', 4 },
+        { 'f', 5 },
+        { 'g', 6 },
+    };
+    for (auto& p : vals) {
+        t.insert(std::get<0>(p), std::move(std::get<1>(p)));
+    }
+
+    for (auto& p : vals) {
+        if (auto* v = t.search(std::get<0>(p)); v){
+            std::println("{} : {}", std::get<0>(p), *v);
+        }
+    }
 }
