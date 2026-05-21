@@ -138,3 +138,7 @@ add_test(NAME rod_cutting COMMAND rod_cutting)
 add_executable(b_tree src/b_tree.cc)
 target_link_libraries(b_tree PRIVATE common)
 add_test(NAME b_tree COMMAND b_tree)
+
+add_executable(avl_tree src/avl_tree.cc)
+target_link_libraries(avl_tree PRIVATE common)
+add_test(NAME avl_tree COMMAND avl_tree)
