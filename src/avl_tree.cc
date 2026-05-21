@@ -1,4 +1,7 @@
 #include <cstddef>
+#include <cstdio>
+#include <iostream>
+#include <ostream>
 #include <print>
 #include <utility>
 #include <vector>
@@ -146,7 +149,7 @@ public:
         (*to_insert)->data = item;
         (*to_insert)->parent = prev;
         (*to_insert)->size = 1;
-        (*to_insert)->balance = 0;
+        (*to_insert)->balance = BALANCED;
         m_size++;
         insert_fixup(*to_insert);
         return true;
@@ -241,13 +244,38 @@ public:
         Node* v = x;
         if (z->left || z->right)
             v = transplant(z, z->left ? z->left : z->right);
-        else if(auto z_d = z->get_child_dir(); z_d != Child::ROOT){
+        else if (auto z_d = z->get_child_dir(); z_d != Child::ROOT) {
             x->_ord[(int)z_d] = nullptr;
             delete_fixup(v);
         }
         delete z;
 
         return true;
+    }
+
+#define priv private:
+#define pub public:
+
+    priv void _print_traverse(Node* n, int depth)
+    {
+        if (!n)
+            return;
+        if (n->right)
+            _print_traverse(n->right, depth + 2);
+        std::printf("%*c", depth, ' ');
+        std::println("{} : {}", n->key, n->data);
+        if (n->left)
+            _print_traverse(n->left, depth + 2);
+        else {
+            std::printf("%*c", depth, ' ');
+            std::println("null");
+        }
+        std::flush(std::cout);
+    }
+
+    pub void print_traverse()
+    {
+        _print_traverse(m_root, 0);
     }
 
 private:
@@ -341,15 +369,16 @@ int main(void)
     }
 
     for (auto& p : vals) {
-        if (auto* v = t.search(std::get<0>(p)); v){
+        if (auto* v = t.search(std::get<0>(p)); v) {
             std::println("{} : {}", std::get<0>(p), *v);
         }
     }
+    t.print_traverse();
     for (auto& p : vals) {
         t.delete_element(std::get<0>(p));
     }
     for (auto& p : vals) {
-        if (auto* v = t.search(std::get<0>(p)); v){
+        if (auto* v = t.search(std::get<0>(p)); v) {
             std::println("{} : {}", std::get<0>(p), *v);
         }
     }
