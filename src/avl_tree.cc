@@ -241,13 +241,13 @@ public:
         Node* v = x;
         if (z->left || z->right)
             v = transplant(z, z->left ? z->left : z->right);
-        else {
-            x->_ord[z->get_child_dir()] = nullptr;
+        else if(auto z_d = z->get_child_dir(); z_d != Child::ROOT){
+            x->_ord[(int)z_d] = nullptr;
+            delete_fixup(v);
         }
         delete z;
-        delete_fixup(v);
 
-        return false;
+        return true;
     }
 
 private:
@@ -340,6 +340,14 @@ int main(void)
         t.insert(std::get<0>(p), std::move(std::get<1>(p)));
     }
 
+    for (auto& p : vals) {
+        if (auto* v = t.search(std::get<0>(p)); v){
+            std::println("{} : {}", std::get<0>(p), *v);
+        }
+    }
+    for (auto& p : vals) {
+        t.delete_element(std::get<0>(p));
+    }
     for (auto& p : vals) {
         if (auto* v = t.search(std::get<0>(p)); v){
             std::println("{} : {}", std::get<0>(p), *v);
