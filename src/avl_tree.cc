@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <iostream>
@@ -69,19 +70,17 @@ private:
 private:
     void insert_fixup(Node* z)
     {
-        while (z && z->balance != BALANCED) {
-            Node *n, *g;
-            auto* x = z->parent;
-            auto d = z->get_child_dir();
+        for (Node* x = z->parent; x != nullptr; x = z->parent) {
+            Node *n{}, *g{};
+            auto x_d = z->get_child_dir();
             // update balance factor of parent
-            if (d == Child::RIGHT) {
+            if (x_d == Child::RIGHT) {
                 if (x->balance == RIGHT_HEAVY) {
                     g = x->parent;
                     if (z->balance == LEFT_HEAVY) {
-                        rotate_right(z);
-                        n = rotate_left(x);
+                        n = rotate_right_left(x, z);
                     } else {
-                        n = rotate_left(x);
+                        n = rotate_left(x, z);
                     }
                 } else {
                     if (x->balance == LEFT_HEAVY) {
@@ -96,10 +95,9 @@ private:
                 if (x->balance == LEFT_HEAVY) {
                     g = x->parent;
                     if (z->balance == RIGHT_HEAVY) {
-                        rotate_left(z);
-                        n = rotate_right(x);
+                        n = rotate_left_right(x, z);
                     } else {
-                        n = rotate_right(x);
+                        n = rotate_right(x, z);
                     }
                 } else {
                     if (x->balance == RIGHT_HEAVY) {
@@ -113,7 +111,7 @@ private:
             }
             n->parent = g;
             if (g) {
-                g->_ord[(int)d] = n;
+                g->_ord[(int)x_d] = n;
                 // d = x->get_child_dir();
                 // if(d == Child::LEFT){
                 //     g->left = n;
@@ -137,7 +135,7 @@ public:
             if (key > (*to_insert)->key) {
                 prev = *to_insert;
                 to_insert = &((*to_insert)->right);
-            } else if (key < (*to_insert)->data) {
+            } else if (key < (*to_insert)->key) {
                 prev = *to_insert;
                 to_insert = &((*to_insert)->left);
             } else {
@@ -180,16 +178,14 @@ private:
         char b = 0;
         for (Node* x = n->parent; x != nullptr; x = g) {
             g = x->parent;
-            auto n_d = n->get_child_dir();
-            if (n_d == Child::LEFT) {
+            if (n == x->left) {
                 if (x->balance == RIGHT_HEAVY) {
                     z = x->right;
                     b = z->balance;
                     if (b < 0) {
-                        rotate_right(z);
-                        n = rotate_left(x);
+                        n = rotate_right_left(x, z);
                     } else {
-                        n = rotate_left(x);
+                        n = rotate_left(x, z);
                     }
                 } else {
                     if (x->balance == 0) {
@@ -205,10 +201,9 @@ private:
                     z = x->left;
                     b = z->balance;
                     if (b > 0) {
-                        rotate_left(z);
-                        n = rotate_right(x);
+                        n = rotate_left_right(x, z);
                     } else {
-                        n = rotate_right(x);
+                        n = rotate_right(x, z);
                     }
                 } else {
                     if (x->balance == BALANCED) {
@@ -241,12 +236,15 @@ public:
         if (!z)
             return false;
         auto x = z->parent;
-        Node* v = x;
-        if (z->left || z->right)
-            v = transplant(z, z->left ? z->left : z->right);
-        else if (auto z_d = z->get_child_dir(); z_d != Child::ROOT) {
+        if (Node* c = z->left ? z->left : z->right; c){
+            transplant(z, c);
+            c->left = z->left;
+            c->right = z->right;
+            delete_fixup(c);
+        }
+        else if (auto z_d = z->get_child_dir(); z != this->m_root) {
             x->_ord[(int)z_d] = nullptr;
-            delete_fixup(v);
+            delete_fixup(x);
         }
         delete z;
 
@@ -263,13 +261,9 @@ public:
         if (n->right)
             _print_traverse(n->right, depth + 2);
         std::printf("%*c", depth, ' ');
-        std::println("{} : {}", n->key, n->data);
+        std::println("{} : {}", n->key, (int)n->balance);
         if (n->left)
             _print_traverse(n->left, depth + 2);
-        else {
-            std::printf("%*c", depth, ' ');
-            std::println("null");
-        }
         std::flush(std::cout);
     }
 
@@ -279,61 +273,95 @@ public:
     }
 
 private:
-    Node* rotate_right(Node* node_x)
+    Node* rotate_left(Node* x, Node* z)
     {
-        if (!node_x)
-            return nullptr;
-        if (!node_x->left)
-            return nullptr;
-
-        auto node_y = node_x->left;
-
-        node_y->parent = node_x->parent;
-
-        // replace node_x in node_x's parent
-        if (node_y->parent) {
-            Node** child_ptr = node_y->parent->right == node_x ? &node_y->parent->right
-                                                               : &node_y->parent->left;
-            *child_ptr = node_y;
+        auto t23 = z->left;
+        x->right = t23;
+        if(t23)
+            t23->parent = x;
+        z->left = x;
+        x->parent = z;
+        if(z->balance == BALANCED){
+            x->balance = RIGHT_HEAVY;
+            z->balance = LEFT_HEAVY;
         } else {
-            m_root = node_y;
+            x->balance = BALANCED;
+            z->balance = BALANCED;
         }
-
-        node_x->left = node_y->right;
-        if (node_x->left)
-            node_x->left->parent = node_x;
-
-        node_x->parent = node_y;
-        node_y->right = node_x;
-
-        return node_y;
+        return z;
     }
-    Node* rotate_left(Node* node_x)
+    Node* rotate_right(Node* x, Node* z)
     {
-        if (!node_x)
-            return nullptr;
-        if (!node_x->right)
-            return nullptr;
-
-        auto node_y = node_x->right;
-
-        node_y->parent = node_x->parent;
-
-        if (node_y->parent) {
-            Node** child_ptr = node_y->parent->right == node_x ? &node_y->parent->right
-                                                               : &node_y->parent->left;
-            *child_ptr = node_y;
+        auto t23 = z->right;
+        x->left = t23;
+        if(t23)
+            t23->parent = x;
+        z->right = x;
+        x->parent = z;
+        if(z->balance == BALANCED){
+            x->balance = LEFT_HEAVY;
+            z->balance = RIGHT_HEAVY;
         } else {
-            m_root = node_y;
+            x->balance = BALANCED;
+            z->balance = BALANCED;
         }
-        node_x->right = node_y->left;
-        if (node_x->right)
-            node_x->right->parent = node_x;
-
-        node_x->parent = node_y;
-        node_y->left = node_x;
-
-        return node_y;
+        return z;
+    }
+    Node* rotate_right_left(Node* x, Node* z)
+    {
+        auto y = z->left;
+        auto t3 = y->right;
+        z->left = t3;
+        if(t3)
+            t3->parent = z;
+        y->right = z;
+        z->parent = y;
+        auto t2 = y->left;
+        x->right = t2;
+        if(t2)
+            t2->parent = x;
+        y->left = x;
+        x->parent = y;
+        if(y->balance == BALANCED) {
+            x->balance = BALANCED;
+            z->balance = BALANCED;
+        } else if (y->balance == RIGHT_HEAVY){
+            x->balance = LEFT_HEAVY;
+            z->balance = BALANCED;
+        } else {
+            x->balance = BALANCED;
+            z->balance = RIGHT_HEAVY;
+        }
+        y->balance = BALANCED;
+        return y;
+    }
+    Node* rotate_left_right(Node* x, Node* z)
+    {
+        auto y = z->right;
+        auto t3 = y->left;
+        z->right = t3;
+        if(t3)
+            t3->parent = z;
+        y->left = z;
+        z->parent = y;
+        auto t2 = y->right;
+        x->left = t2;
+        if(t2)
+            t2->parent = x;
+        y->right = x;
+        x->parent = y;
+        if(y->balance == BALANCED) {
+            x->balance = BALANCED;
+            z->balance = BALANCED;
+        } else if (y->balance == LEFT_HEAVY){
+            x->balance = RIGHT_HEAVY;
+            z->balance = BALANCED;
+        } else {
+            x->balance = BALANCED;
+            z->balance = LEFT_HEAVY;
+        }
+        y->balance = BALANCED;
+        return y;
     }
     Node* transplant(Node* u, Node* v)
     {
@@ -356,16 +384,22 @@ int main(void)
 {
     AVLTree<char, int> t { };
     std::vector<std::pair<char, int>> vals = {
-        { 'a', 0 },
-        { 'b', 1 },
-        { 'c', 2 },
-        { 'd', 3 },
-        { 'e', 4 },
-        { 'f', 5 },
-        { 'g', 6 },
+        { 'm', 0 },
+        { 'n', 1 },
+        { 'o', 2 },
+        { 'l', 3 },
+        { 'k', 4 },
+        { 'q', 5 },
+        { 'p', 6 },
+        { 'h', 6 },
+        { 'i', 6 },
+        { 'a', 6 },
     };
     for (auto& p : vals) {
+        // std::println("=========");
         t.insert(std::get<0>(p), std::move(std::get<1>(p)));
+        // t.print_traverse();
+        // std::println("=========");
     }
 
     for (auto& p : vals) {
@@ -373,13 +407,16 @@ int main(void)
             std::println("{} : {}", std::get<0>(p), *v);
         }
     }
-    t.print_traverse();
-    for (auto& p : vals) {
-        t.delete_element(std::get<0>(p));
-    }
-    for (auto& p : vals) {
-        if (auto* v = t.search(std::get<0>(p)); v) {
-            std::println("{} : {}", std::get<0>(p), *v);
+    while(!vals.empty()){
+        auto [k, v] = vals.back();
+        vals.pop_back();
+        std::println("delete {}", k);
+        t.delete_element(k);
+        for (auto& p : vals) {
+            auto key = std::get<0>(p);
+            std::println("check {}", key);
+            std::flush(std::cout);
+            assert(t.search(key));
         }
     }
 }
