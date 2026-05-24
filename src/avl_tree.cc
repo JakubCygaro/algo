@@ -237,6 +237,13 @@ public:
         }
         return n;
     }
+    priv Node* pred(Node* n)
+    {
+        while (n->right) {
+            n = n->right;
+        }
+        return n;
+    }
 
     pub bool delete_element(const K& key)
     {
@@ -244,34 +251,50 @@ public:
         if (!z)
             return false;
         if (z->left && z->right) {
-            auto s = succ(z->right);
-            if (s == z->right) {
-                transplant(z, s);
-                s->left = z->left;
-                s->left->parent = s;
-                // delete_fixup(s);
+            // auto s = succ(z->right);
+            // if (s == z->right) {
+            //     transplant(z, s);
+            //     s->left = z->left;
+            //     s->left->parent = s;
+            //     // delete_fixup(s);
+            // } else {
+            //     auto s_r = s->right;
+            //     auto p = s->parent;
+            //     transplant(s, s_r);
+            //     transplant(z, s);
+            //     s->left = z->left;
+            //     s->left->parent = s;
+            //     s->right = z->right;
+            //     s->right->parent = s;
+            //     // delete_fixup(s);
+            // }
+            auto p = pred(z->left);
+            if (p == z->left) {
+                transplant(z, p);
+                p->right = z->right;
+                p->right->parent = p;
+                delete_fixup(p);
             } else {
-                auto s_r = s->right;
-                auto p = s->parent;
-                transplant(s, s_r);
-                transplant(z, s);
-                s->left = z->left;
-                s->left->parent = s;
-                s->right = z->right;
-                s->right->parent = s;
-                // delete_fixup(s);
+                auto s_l = p->left;
+                transplant(p, s_l);
+                transplant(z, p);
+                p->left = z->left;
+                p->left->parent = p;
+                p->right = z->right;
+                p->right->parent = p;
+                delete_fixup(p);
             }
         } else if (auto c = z->left ? z->left : z->right; c) {
             transplant(z, c);
-            // delete_fixup(c);
+            delete_fixup(c);
         } else {
             transplant(z, nullptr);
             // x->_ord[(int)z_d] = nullptr;
-            // if (z->parent)
-            //     delete_fixup(z->parent);
+            if(z->parent)
+                delete_fixup(z->parent);
         }
-        if(z->parent)
-            delete_fixup(z->parent);
+        // if(z->parent)
+        //     delete_fixup(z->parent);
         delete z;
         m_size--;
 
@@ -407,23 +430,24 @@ int main(void)
 {
     AVLTree<char, int> t { };
     std::vector<std::pair<char, int>> vals = {
+        { 'n', 1 },
+        { 'i', 6 },
+        { 'q', 5 },
+        { 'l', 3 },
+        { 'k', 4 },
+        { 'h', 6 },
         { 'o', 2 },
         { 'a', 6 },
-        { 'q', 5 },
-        { 'i', 6 },
-        { 'h', 6 },
-        { 'n', 1 },
-        { 'p', 6 },
-        { 'k', 4 },
         { 'm', 0 },
-        { 'l', 3 },
+        { 'p', 6 },
     };
-    std::ranges::shuffle(vals, [] {
+    const auto seeded_rng = [] {
         auto eng = std::default_random_engine { };
         eng.seed(std::time(nullptr));
         return eng;
-    }());
-    std::println("{}", vals);
+    };
+    // std::ranges::shuffle(vals, seeded_rng());
+    std::println("vals: {}", vals);
     for (auto& p : vals) {
         t.insert(std::get<0>(p), std::move(std::get<1>(p)));
         t.print_traverse();
@@ -436,6 +460,20 @@ int main(void)
             std::println("{} : {}", std::get<0>(p), *v);
         }
     }
+    // std::ranges::shuffle(vals, seeded_rng());
+    vals = {
+        { 'n', 1 },
+        { 'i', 6 },
+        { 'q', 5 },
+        { 'l', 3 },
+        { 'k', 4 },
+        { 'h', 6 },
+        { 'o', 2 },
+        { 'a', 6 },
+        { 'm', 0 },
+        { 'p', 6 },
+    };
+    std::println("deletion order: {}", vals);
     while (!vals.empty()) {
         auto [k, v] = vals.back();
         vals.pop_back();
