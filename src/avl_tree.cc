@@ -1,11 +1,19 @@
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
+#include <ctime>
 #include <iostream>
 #include <ostream>
 #include <print>
+#include <random>
+#include <string>
 #include <utility>
 #include <vector>
+
+#define priv private:
+#define pub public:
+
 template <typename K, typename T>
 class AVLTree {
 private:
@@ -51,8 +59,7 @@ public:
     {
     }
 
-private:
-    Node* search_impl(const K& key) const
+    priv Node* search_impl(const K& key) const
     {
         auto node = m_root;
         while (node) {
@@ -67,14 +74,13 @@ private:
         return nullptr;
     }
 
-private:
-    void insert_fixup(Node* z)
+    priv void insert_fixup(Node* z)
     {
         for (Node* x = z->parent; x != nullptr; x = z->parent) {
             Node *n { }, *g { };
-            auto x_d = z->get_child_dir();
+            auto z_d = z->get_child_dir();
             // update balance factor of parent
-            if (x_d == Child::RIGHT) {
+            if (z_d == Child::RIGHT) {
                 if (x->balance == RIGHT_HEAVY) {
                     g = x->parent;
                     if (z->balance == LEFT_HEAVY) {
@@ -111,13 +117,11 @@ private:
             }
             n->parent = g;
             if (g) {
-                g->_ord[(int)x_d] = n;
-                // d = x->get_child_dir();
-                // if(d == Child::LEFT){
-                //     g->left = n;
-                // } else {
-                //     g->right = n;
-                // }
+                if (x == g->left) {
+                    g->left = n;
+                } else {
+                    g->right = n;
+                }
             } else {
                 this->m_root = n;
             }
@@ -125,8 +129,7 @@ private:
         }
     }
 
-public:
-    bool insert(const K& key, T&& item)
+    pub bool insert(const K key, T&& item)
     {
         Node* prev = nullptr;
         Node** to_insert = &m_root;
@@ -146,7 +149,6 @@ public:
         (*to_insert)->key = key;
         (*to_insert)->data = item;
         (*to_insert)->parent = prev;
-        (*to_insert)->size = 1;
         (*to_insert)->balance = BALANCED;
         m_size++;
         insert_fixup(*to_insert);
@@ -170,8 +172,7 @@ public:
         }
     }
 
-private:
-    void delete_fixup(Node* n)
+    priv void delete_fixup(Node* n)
     {
         Node* g { };
         Node* z { };
@@ -229,28 +230,26 @@ private:
         }
     }
 
-private:
-    Node* succ(Node* n)
+    priv Node* succ(Node* n)
     {
-        while(n->left){
+        while (n->left) {
             n = n->left;
         }
         return n;
     }
 
-public:
-    bool delete_element(const K& key)
+    pub bool delete_element(const K& key)
     {
         auto z = search_impl(key);
         if (!z)
             return false;
         if (z->left && z->right) {
             auto s = succ(z->right);
-            if(s == z->right){
+            if (s == z->right) {
                 transplant(z, s);
                 s->left = z->left;
                 s->left->parent = s;
-                delete_fixup(s);
+                // delete_fixup(s);
             } else {
                 auto s_r = s->right;
                 auto p = s->parent;
@@ -260,26 +259,24 @@ public:
                 s->left->parent = s;
                 s->right = z->right;
                 s->right->parent = s;
-                delete_fixup(p);
+                // delete_fixup(s);
             }
         } else if (auto c = z->left ? z->left : z->right; c) {
             transplant(z, c);
-            delete_fixup(c);
+            // delete_fixup(c);
         } else {
             transplant(z, nullptr);
             // x->_ord[(int)z_d] = nullptr;
-            if(z->parent)
-                delete_fixup(z->parent);
+            // if (z->parent)
+            //     delete_fixup(z->parent);
         }
-        // delete_fixup(z->parent);
+        if(z->parent)
+            delete_fixup(z->parent);
         delete z;
         m_size--;
 
         return true;
     }
-
-#define priv private:
-#define pub public:
 
     priv void _print_traverse(Node* n, int depth)
     {
@@ -296,11 +293,12 @@ public:
 
     pub void print_traverse()
     {
+        std::println("======");
         _print_traverse(m_root, 0);
+        std::println("======");
     }
 
-private:
-    Node* rotate_left(Node* x, Node* z)
+    priv Node* rotate_left(Node* x, Node* z)
     {
         auto t23 = z->left;
         x->right = t23;
@@ -317,7 +315,7 @@ private:
         }
         return z;
     }
-    Node* rotate_right(Node* x, Node* z)
+    priv Node* rotate_right(Node* x, Node* z)
     {
         auto t23 = z->right;
         x->left = t23;
@@ -334,7 +332,7 @@ private:
         }
         return z;
     }
-    Node* rotate_right_left(Node* x, Node* z)
+    priv Node* rotate_right_left(Node* x, Node* z)
     {
         auto y = z->left;
         auto t3 = y->right;
@@ -362,7 +360,7 @@ private:
         y->balance = BALANCED;
         return y;
     }
-    Node* rotate_left_right(Node* x, Node* z)
+    priv Node* rotate_left_right(Node* x, Node* z)
     {
         auto y = z->right;
         auto t3 = y->left;
@@ -390,7 +388,7 @@ private:
         y->balance = BALANCED;
         return y;
     }
-    Node* transplant(Node* u, Node* v)
+    priv Node* transplant(Node* u, Node* v)
     {
         if (!u->parent) {
             m_root = v;
@@ -404,29 +402,33 @@ private:
         }
         return v;
     }
-
-public:
 };
 int main(void)
 {
     AVLTree<char, int> t { };
     std::vector<std::pair<char, int>> vals = {
-        { 'm', 0 },
-        { 'n', 1 },
         { 'o', 2 },
-        { 'l', 3 },
-        { 'k', 4 },
-        { 'q', 5 },
-        { 'p', 6 },
-        { 'h', 6 },
-        { 'i', 6 },
         { 'a', 6 },
+        { 'q', 5 },
+        { 'i', 6 },
+        { 'h', 6 },
+        { 'n', 1 },
+        { 'p', 6 },
+        { 'k', 4 },
+        { 'm', 0 },
+        { 'l', 3 },
     };
+    std::ranges::shuffle(vals, [] {
+        auto eng = std::default_random_engine { };
+        eng.seed(std::time(nullptr));
+        return eng;
+    }());
+    std::println("{}", vals);
     for (auto& p : vals) {
-        // std::println("=========");
         t.insert(std::get<0>(p), std::move(std::get<1>(p)));
-        // t.print_traverse();
-        // std::println("=========");
+        t.print_traverse();
+        // std::string buf{};
+        // std::getline(std::cin, buf);
     }
 
     for (auto& p : vals) {
@@ -440,6 +442,7 @@ int main(void)
         std::println("delete {}", k);
         std::flush(std::cout);
         t.delete_element(k);
+        t.print_traverse();
         for (auto& p : vals) {
             auto key = std::get<0>(p);
             std::println("check {}", key);
