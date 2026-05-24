@@ -71,7 +71,7 @@ private:
     void insert_fixup(Node* z)
     {
         for (Node* x = z->parent; x != nullptr; x = z->parent) {
-            Node *n{}, *g{};
+            Node *n { }, *g { };
             auto x_d = z->get_child_dir();
             // update balance factor of parent
             if (x_d == Child::RIGHT) {
@@ -229,24 +229,51 @@ private:
         }
     }
 
+private:
+    Node* succ(Node* n)
+    {
+        while(n->left){
+            n = n->left;
+        }
+        return n;
+    }
+
 public:
     bool delete_element(const K& key)
     {
         auto z = search_impl(key);
         if (!z)
             return false;
-        auto x = z->parent;
-        if (Node* c = z->left ? z->left : z->right; c){
+        if (z->left && z->right) {
+            auto s = succ(z->right);
+            if(s == z->right){
+                transplant(z, s);
+                s->left = z->left;
+                s->left->parent = s;
+                delete_fixup(s);
+            } else {
+                auto s_r = s->right;
+                auto p = s->parent;
+                transplant(s, s_r);
+                transplant(z, s);
+                s->left = z->left;
+                s->left->parent = s;
+                s->right = z->right;
+                s->right->parent = s;
+                delete_fixup(p);
+            }
+        } else if (auto c = z->left ? z->left : z->right; c) {
             transplant(z, c);
-            c->left = z->left;
-            c->right = z->right;
             delete_fixup(c);
+        } else {
+            transplant(z, nullptr);
+            // x->_ord[(int)z_d] = nullptr;
+            if(z->parent)
+                delete_fixup(z->parent);
         }
-        else if (auto z_d = z->get_child_dir(); z != this->m_root) {
-            x->_ord[(int)z_d] = nullptr;
-            delete_fixup(x);
-        }
+        // delete_fixup(z->parent);
         delete z;
+        m_size--;
 
         return true;
     }
@@ -277,11 +304,11 @@ private:
     {
         auto t23 = z->left;
         x->right = t23;
-        if(t23)
+        if (t23)
             t23->parent = x;
         z->left = x;
         x->parent = z;
-        if(z->balance == BALANCED){
+        if (z->balance == BALANCED) {
             x->balance = RIGHT_HEAVY;
             z->balance = LEFT_HEAVY;
         } else {
@@ -294,11 +321,11 @@ private:
     {
         auto t23 = z->right;
         x->left = t23;
-        if(t23)
+        if (t23)
             t23->parent = x;
         z->right = x;
         x->parent = z;
-        if(z->balance == BALANCED){
+        if (z->balance == BALANCED) {
             x->balance = LEFT_HEAVY;
             z->balance = RIGHT_HEAVY;
         } else {
@@ -312,20 +339,20 @@ private:
         auto y = z->left;
         auto t3 = y->right;
         z->left = t3;
-        if(t3)
+        if (t3)
             t3->parent = z;
         y->right = z;
         z->parent = y;
         auto t2 = y->left;
         x->right = t2;
-        if(t2)
+        if (t2)
             t2->parent = x;
         y->left = x;
         x->parent = y;
-        if(y->balance == BALANCED) {
+        if (y->balance == BALANCED) {
             x->balance = BALANCED;
             z->balance = BALANCED;
-        } else if (y->balance == RIGHT_HEAVY){
+        } else if (y->balance == RIGHT_HEAVY) {
             x->balance = LEFT_HEAVY;
             z->balance = BALANCED;
         } else {
@@ -340,20 +367,20 @@ private:
         auto y = z->right;
         auto t3 = y->left;
         z->right = t3;
-        if(t3)
+        if (t3)
             t3->parent = z;
         y->left = z;
         z->parent = y;
         auto t2 = y->right;
         x->left = t2;
-        if(t2)
+        if (t2)
             t2->parent = x;
         y->right = x;
         x->parent = y;
-        if(y->balance == BALANCED) {
+        if (y->balance == BALANCED) {
             x->balance = BALANCED;
             z->balance = BALANCED;
-        } else if (y->balance == LEFT_HEAVY){
+        } else if (y->balance == LEFT_HEAVY) {
             x->balance = RIGHT_HEAVY;
             z->balance = BALANCED;
         } else {
@@ -407,10 +434,11 @@ int main(void)
             std::println("{} : {}", std::get<0>(p), *v);
         }
     }
-    while(!vals.empty()){
+    while (!vals.empty()) {
         auto [k, v] = vals.back();
         vals.pop_back();
         std::println("delete {}", k);
+        std::flush(std::cout);
         t.delete_element(k);
         for (auto& p : vals) {
             auto key = std::get<0>(p);
