@@ -1,3 +1,4 @@
+#include "common.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -59,9 +60,9 @@ public:
     {
     }
 
-    priv Node* search_impl(const K& key) const
+    priv Node* search_impl(const K& key, Node* r) const
     {
-        auto node = m_root;
+        auto node = r;
         while (node) {
             if (node->key == key) {
                 return node;
@@ -164,7 +165,7 @@ public:
     }
     T* search(const K key) const
     {
-        auto found = search_impl(key);
+        auto found = search_impl(key, m_root);
         if (found) {
             return &found->data;
         } else {
@@ -180,7 +181,7 @@ public:
         for (Node* x = n->parent; x != nullptr; x = g) {
             g = x->parent;
             if (n == x->left) {
-                if (x->balance == RIGHT_HEAVY) {
+                if (x->balance > 0) {
                     z = x->right;
                     b = z->balance;
                     if (b < 0) {
@@ -190,15 +191,15 @@ public:
                     }
                 } else {
                     if (x->balance == 0) {
-                        x->balance = RIGHT_HEAVY;
+                        x->balance = 1;
                         break;
                     }
                     n = x;
-                    n->balance = BALANCED;
+                    n->balance = 0;
                     continue;
                 }
             } else {
-                if (x->balance == LEFT_HEAVY) {
+                if (x->balance < 0) {
                     z = x->left;
                     b = z->balance;
                     if (b > 0) {
@@ -207,12 +208,12 @@ public:
                         n = rotate_right(x, z);
                     }
                 } else {
-                    if (x->balance == BALANCED) {
-                        x->balance = LEFT_HEAVY;
+                    if (x->balance == 0) {
+                        x->balance = -1;
                         break;
                     }
                     n = x;
-                    n->balance = BALANCED;
+                    n->balance = 0;
                     continue;
                 }
             }
@@ -244,61 +245,49 @@ public:
         }
         return n;
     }
-
-    pub bool delete_element(const K& key)
+    priv bool delete_element_impl(const K& key, Node* r)
     {
-        auto z = search_impl(key);
+        auto z = search_impl(key, r);
         if (!z)
             return false;
         if (z->left && z->right) {
-            // auto s = succ(z->right);
-            // if (s == z->right) {
-            //     transplant(z, s);
-            //     s->left = z->left;
-            //     s->left->parent = s;
-            //     // delete_fixup(s);
-            // } else {
-            //     auto s_r = s->right;
-            //     auto p = s->parent;
-            //     transplant(s, s_r);
-            //     transplant(z, s);
-            //     s->left = z->left;
-            //     s->left->parent = s;
-            //     s->right = z->right;
-            //     s->right->parent = s;
-            //     // delete_fixup(s);
-            // }
             auto p = pred(z->left);
-            if (p == z->left) {
-                transplant(z, p);
-                p->right = z->right;
-                p->right->parent = p;
-                delete_fixup(p);
-            } else {
-                auto s_l = p->left;
-                transplant(p, s_l);
-                transplant(z, p);
-                p->left = z->left;
-                p->left->parent = p;
-                p->right = z->right;
-                p->right->parent = p;
-                delete_fixup(p);
-            }
+            std::swap(p->key, z->key);
+            std::swap(p->data, z->data);
+            return delete_element_impl(p->key, p);
+            // if (p == z->left) {
+            //     transplant(z, p);
+            //     p->right = z->right;
+            //     p->right->parent = p;
+            //     delete_fixup(p);
+            // } else {
+            //     auto s_l = p->left;
+            //     transplant(p, s_l);
+            //     transplant(z, p);
+            //     p->left = z->left;
+            //     p->left->parent = p;
+            //     p->right = z->right;
+            //     p->right->parent = p;
+            //     delete_fixup(p);
+            // }
         } else if (auto c = z->left ? z->left : z->right; c) {
             transplant(z, c);
             delete_fixup(c);
         } else {
+            // if (z->parent)
+            //     delete_fixup(z->parent);
+            delete_fixup(z);
             transplant(z, nullptr);
-            // x->_ord[(int)z_d] = nullptr;
-            if(z->parent)
-                delete_fixup(z->parent);
         }
-        // if(z->parent)
-        //     delete_fixup(z->parent);
         delete z;
         m_size--;
 
         return true;
+    }
+
+    pub bool delete_element(const K& key)
+    {
+        return delete_element_impl(key, m_root);
     }
 
     priv void _print_traverse(Node* n, int depth)
@@ -428,64 +417,33 @@ public:
 };
 int main(void)
 {
-    AVLTree<char, int> t { };
-    std::vector<std::pair<char, int>> vals = {
-        { 'n', 1 },
-        { 'i', 6 },
-        { 'q', 5 },
-        { 'l', 3 },
-        { 'k', 4 },
-        { 'h', 6 },
-        { 'o', 2 },
-        { 'a', 6 },
-        { 'm', 0 },
-        { 'p', 6 },
-    };
-    const auto seeded_rng = [] {
+    const auto get_seeded_rng = [] {
         auto eng = std::default_random_engine { };
         eng.seed(std::time(nullptr));
         return eng;
     };
-    // std::ranges::shuffle(vals, seeded_rng());
-    std::println("vals: {}", vals);
-    for (auto& p : vals) {
-        t.insert(std::get<0>(p), std::move(std::get<1>(p)));
-        t.print_traverse();
-        // std::string buf{};
-        // std::getline(std::cin, buf);
+    AVLTree<char, int> t { };
+    std::vector<std::pair<char, int>> vals = { };
+    for (auto i = 'a'; i <= 'z'; i++) {
+        vals.push_back({
+            i,
+            common::get_random_in_range(0, 1000) - 500,
+        });
     }
-
-    for (auto& p : vals) {
-        if (auto* v = t.search(std::get<0>(p)); v) {
-            std::println("{} : {}", std::get<0>(p), *v);
-        }
-    }
-    // std::ranges::shuffle(vals, seeded_rng());
-    vals = {
-        { 'n', 1 },
-        { 'i', 6 },
-        { 'q', 5 },
-        { 'l', 3 },
-        { 'k', 4 },
-        { 'h', 6 },
-        { 'o', 2 },
-        { 'a', 6 },
-        { 'm', 0 },
-        { 'p', 6 },
-    };
-    std::println("deletion order: {}", vals);
-    while (!vals.empty()) {
-        auto [k, v] = vals.back();
-        vals.pop_back();
-        std::println("delete {}", k);
-        std::flush(std::cout);
-        t.delete_element(k);
-        t.print_traverse();
+    for (auto i = 0; i < 100; i++) {
+        std::ranges::shuffle(vals, get_seeded_rng());
         for (auto& p : vals) {
-            auto key = std::get<0>(p);
-            std::println("check {}", key);
-            std::flush(std::cout);
-            assert(t.search(key));
+            t.insert(std::get<0>(p), std::move(std::get<1>(p)));
+        }
+        std::ranges::shuffle(vals, get_seeded_rng());
+        while (!vals.empty()) {
+            auto [k, v] = vals.back();
+            vals.pop_back();
+            t.delete_element(k);
+            for (auto& p : vals) {
+                auto key = std::get<0>(p);
+                assert(t.search(key));
+            }
         }
     }
 }
