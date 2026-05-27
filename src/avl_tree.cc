@@ -16,7 +16,7 @@
 #define pub public:
 
 template <typename K, typename T>
-class AVLTree {
+class SplayTree {
 private:
     enum class Child {
         LEFT = 0,
@@ -56,7 +56,7 @@ private:
     std::size_t m_size { };
 
 public:
-    AVLTree()
+    SplayTree()
     {
     }
 
@@ -422,7 +422,7 @@ int main(void)
         eng.seed(std::time(nullptr));
         return eng;
     };
-    AVLTree<char, int> t { };
+    SplayTree<char, int> t { };
     std::vector<std::pair<char, int>> vals = { };
     for (auto i = 'a'; i <= 'z'; i++) {
         vals.push_back({
