@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.90)
 enable_testing()
 project(algo)
 
+if(CMAKE_BUILD_TYPE STREQUAL "" AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
 include_directories(BEFORE src)
 add_library(cpp_std_23 INTERFACE)
 

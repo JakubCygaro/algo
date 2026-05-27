@@ -1,10 +1,15 @@
 #include "common.hpp"
 #include <cstddef>
 #include <iostream>
-#include <print>
 
 #define priv private:
 #define pub public:
+
+#ifndef NDEBUG
+#define MOCKABLE pub
+#else
+#define MOCKABLE priv
+#endif
 
 template <typename K, typename T>
 class SplayTree {
@@ -23,14 +28,14 @@ private:
         };
         char balance;
     };
-    Node* m_root { };
     std::size_t m_size { };
+    MOCKABLE Node* m_root { };
 
     pub SplayTree()
     {
     }
 
-    priv Node* search_impl(const K& key, Node* r) const
+    priv Node* search_impl(const K& key, Node* r)
     {
         auto node = r;
         while (node) {
@@ -77,10 +82,11 @@ private:
     {
         return m_size == 0;
     }
-    T* search(const K key) const
+    T* search(const K key)
     {
         auto found = search_impl(key, m_root);
         if (found) {
+            splay(found);
             return &found->data;
         } else {
             return nullptr;
@@ -101,8 +107,21 @@ private:
         }
         return n;
     }
+#ifndef NDEBUG
+    Node* _last_delete_parent = nullptr;
+    pub std::pair<K, T> get_last_delete_parent()
+    {
+        return { _last_delete_parent->key, _last_delete_parent->data };
+    }
+    pub bool has_last_delete_parent() {
+        return !!_last_delete_parent;
+    }
+#endif
     priv bool delete_element_impl(const K& key, Node* r)
     {
+#ifndef NDEBUG
+        _last_delete_parent = nullptr;
+#endif
         auto z = search_impl(key, r);
         if (!z)
             return false;
@@ -116,6 +135,9 @@ private:
         } else {
             transplant(z, nullptr);
         }
+#ifndef NDEBUG
+        _last_delete_parent = z->parent;
+#endif
         splay(z->parent);
         delete z;
         m_size--;
@@ -128,29 +150,9 @@ private:
         return delete_element_impl(key, m_root);
     }
 
-    priv void _print_traverse(Node* n, int depth)
-    {
-        if (!n)
-            return;
-        if (n->right)
-            _print_traverse(n->right, depth + 2);
-        std::printf("%*c", depth, ' ');
-        std::println("{}", n->key);
-        if (n->left)
-            _print_traverse(n->left, depth + 2);
-        std::flush(std::cout);
-    }
-
-    pub void print_traverse()
-    {
-        std::println("======");
-        _print_traverse(m_root, 0);
-        std::println("======");
-    }
-
     priv void splay(Node* x)
     {
-        while (x->parent) {
+        while (x && x->parent) {
             auto p = x->parent;
             auto g = p->parent;
             // p is root
@@ -274,12 +276,50 @@ private:
         count_nodes();
         return SplayTree(right);
     }
+    MOCKABLE std::pair<K, T> get_root()
+    {
+        return { m_root->key, m_root->data };
+    }
 };
 int main(void)
 {
+    const auto get_seeded_rng = [] {
+        auto eng = std::default_random_engine { };
+        eng.seed(std::time(nullptr));
+        return eng;
+    };
     SplayTree t = SplayTree<char, int>();
-    t.insert('a', 69);
-    t.insert('f', 420);
-    t.insert('l', 2137);
-    t.insert('b', 1337);
+    std::vector<std::pair<char, int>> vals = { };
+    for (auto i = 'a'; i <= 'z'; i++) {
+        vals.push_back({
+            i,
+            common::get_random_in_range(0, 1000) - 500,
+        });
+    }
+    for (auto i = 0; i < 100; i++) {
+        std::ranges::shuffle(vals, get_seeded_rng());
+        for (auto& p : vals) {
+            t.insert(std::get<0>(p), std::move(std::get<1>(p)));
+            auto [rk, rv] = t.get_root();
+            assert(rk == std::get<0>(p) && rv == std::get<1>(p) && "insert not root");
+        }
+        std::ranges::shuffle(vals, get_seeded_rng());
+        while (!vals.empty()) {
+            auto [k, v] = vals.back();
+            vals.pop_back();
+            t.delete_element(k);
+            if(t.has_last_delete_parent()){
+                auto [rk, rv] = t.get_root();
+                auto [lk, lv] = t.get_last_delete_parent();
+                assert(lk == rk && lv == rv && "last delete parent not root");
+            }
+            for (auto& p : vals) {
+                auto key = std::get<0>(p);
+                assert(t.search(key));
+                auto [rk, rv] = t.get_root();
+                assert(rk == key && rv == std::get<1>(p)
+                    && "search not root");
+            }
+        }
+    }
 }

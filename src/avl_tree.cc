@@ -16,7 +16,7 @@
 #define pub public:
 
 template <typename K, typename T>
-class SplayTree {
+class AVLTree {
 private:
     enum class Child {
         LEFT = 0,
@@ -56,7 +56,7 @@ private:
     std::size_t m_size { };
 
 public:
-    SplayTree()
+    AVLTree()
     {
     }
 
@@ -255,27 +255,10 @@ public:
             std::swap(p->key, z->key);
             std::swap(p->data, z->data);
             return delete_element_impl(p->key, p);
-            // if (p == z->left) {
-            //     transplant(z, p);
-            //     p->right = z->right;
-            //     p->right->parent = p;
-            //     delete_fixup(p);
-            // } else {
-            //     auto s_l = p->left;
-            //     transplant(p, s_l);
-            //     transplant(z, p);
-            //     p->left = z->left;
-            //     p->left->parent = p;
-            //     p->right = z->right;
-            //     p->right->parent = p;
-            //     delete_fixup(p);
-            // }
         } else if (auto c = z->left ? z->left : z->right; c) {
             transplant(z, c);
             delete_fixup(c);
         } else {
-            // if (z->parent)
-            //     delete_fixup(z->parent);
             delete_fixup(z);
             transplant(z, nullptr);
         }
@@ -422,7 +405,7 @@ int main(void)
         eng.seed(std::time(nullptr));
         return eng;
     };
-    SplayTree<char, int> t { };
+    AVLTree<char, int> t { };
     std::vector<std::pair<char, int>> vals = { };
     for (auto i = 'a'; i <= 'z'; i++) {
         vals.push_back({
