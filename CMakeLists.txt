@@ -150,3 +150,7 @@ add_test(NAME avl_tree COMMAND avl_tree)
 add_executable(splay_tree src/splay_tree.cc)
 target_link_libraries(splay_tree PRIVATE common)
 add_test(NAME splay_tree COMMAND splay_tree)
+
+add_executable(kd_tree src/kd_tree.cc)
+target_link_libraries(kd_tree PRIVATE common)
+add_test(NAME kd_tree COMMAND kd_tree)
