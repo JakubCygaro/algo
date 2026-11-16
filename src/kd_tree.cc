@@ -6,7 +6,12 @@ struct point;
 
 template <>
 struct point<3> {
-    float x { }, y { }, z { };
+    union {
+        struct {
+            float x { }, y { }, z { };
+        };
+        float arr_[3];
+    };
 };
 
 template <std::size_t Dim>
