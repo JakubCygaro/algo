@@ -207,12 +207,21 @@ private:
             else
                 return { n, depth };
         }
-        auto left_min = find_smallest(n->left, on_axis, depth + 1);
-        auto right_min = find_smallest(n->right, on_axis, depth + 1);
-        auto smallest = std::get<0>(left_min)->location.arr_[on_axis]
-                < std::get<0>(right_min)->location.arr_[on_axis]
-            ? left_min
-            : right_min;
+        std::pair<std::shared_ptr<Node>, std::size_t> smallest;
+        if (n->left && n->right) {
+            auto left_min = find_smallest(n->left, on_axis, depth + 1);
+            auto right_min = find_smallest(n->right, on_axis, depth + 1);
+            smallest = std::get<0>(left_min)->location.arr_[on_axis]
+                    < std::get<0>(right_min)->location.arr_[on_axis]
+                ? left_min
+                : right_min;
+        } else if (n->right) {
+            smallest = find_smallest(n->right, on_axis, depth + 1);
+        } else if (n->left) {
+            smallest = find_smallest(n->left, on_axis, depth + 1);
+        } else {
+            return { n, depth };
+        }
         if (n->location.arr_[on_axis] < std::get<0>(smallest)->location.arr_[on_axis])
             return { n, depth };
         else
@@ -225,17 +234,26 @@ private:
     {
         const auto axis = depth % Dim;
         if (axis == on_axis) {
-            if (n->left)
-                return find_biggest(n->left, on_axis, depth + 1);
+            if (n->right)
+                return find_biggest(n->right, on_axis, depth + 1);
             else
                 return { n, depth };
         }
-        auto left_min = find_biggest(n->left, on_axis, depth + 1);
-        auto right_min = find_biggest(n->right, on_axis, depth + 1);
-        auto biggest = std::get<0>(left_min)->location.arr_[on_axis]
-                < std::get<0>(right_min)->location.arr_[on_axis]
-            ? left_min
-            : right_min;
+        std::pair<std::shared_ptr<Node>, std::size_t> biggest;
+        if (n->left && n->right) {
+            auto left_min = find_biggest(n->left, on_axis, depth + 1);
+            auto right_min = find_biggest(n->right, on_axis, depth + 1);
+            biggest = std::get<0>(left_min)->location.arr_[on_axis]
+                    > std::get<0>(right_min)->location.arr_[on_axis]
+                ? left_min
+                : right_min;
+        } else if (n->right) {
+            biggest = find_biggest(n->right, on_axis, depth + 1);
+        } else if (n->left) {
+            biggest = find_biggest(n->left, on_axis, depth + 1);
+        } else {
+            return { n, depth };
+        }
         if (n->location.arr_[on_axis] > std::get<0>(biggest)->location.arr_[on_axis])
             return { n, depth };
         else
@@ -308,5 +326,5 @@ int main(void)
     };
     KDTree t = KDTree<3>::build_tree(points);
     t.add({ 0, 2, 3 });
-    // t.remove({ 1, 2, 3 });
+    t.remove({ 1, 2, 3 });
 }
