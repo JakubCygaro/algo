@@ -1,10 +1,16 @@
 #include "common.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <format>
 #include <functional>
+#include <iostream>
 #include <memory>
+#include <ostream>
+#include <print>
 #include <ranges>
 #include <span>
+#include <sstream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 template <std::size_t Dim>
@@ -30,7 +36,23 @@ struct point<3> {
         return other.x == x && other.y == y && other.z == z;
     }
 };
+template <>
+struct std::formatter<point<3>, char> {
+    template <class ParseContext>
+    constexpr ParseContext::iterator parse(ParseContext& ctx)
+    {
+        auto it = ctx.begin();
+        return it;
+    }
+    template <class FmtContext>
+    FmtContext::iterator format(point<3> p, FmtContext& ctx) const
+    {
+        std::ostringstream out;
+        out << std::format("{{ {} {} {} }} ", p.x, p.y, p.z);
 
+        return std::ranges::copy(std::move(out).str(), ctx.out()).out;
+    }
+};
 using point3d = point<3>;
 using vec3 = point<3>;
 
@@ -89,7 +111,7 @@ void quick_sort(
 
     auto pivot = common::get_random_in_range(left, right);
 
-    pivot = partition<T>(array, left, right, pivot);
+    pivot = partition<T>(array, left, right, pivot, comp);
 
     quick_sort<T>(array, left, pivot - 1, comp);
     quick_sort<T>(array, pivot + 1, right, comp);
@@ -138,10 +160,18 @@ private:
         this_node->location = med;
         if (points.size() == 1)
             return this_node;
+        // std::println("axis: {}, points: {}", axis, points);
+        // for (const auto& p : points) {
+        //     std::print("{{ {} {} {} }} ", p.x, p.y, p.z);
+        // }
+        // std::println("med_idx: {}", med_idx);
+        // std::flush(std::cout);
         std::span<point_t> left_span = points
                                            .subspan(0, med_idx);
         std::span<point_t> right_span = points
                                             .subspan(med_idx + 1);
+        // std::println("left: {}", left_span);
+        // std::println("right: {}", right_span);
         if (left_span.size() > 0)
             this_node->left = _build_node(left_span, depth + 1);
         if (right_span.size() > 0)
@@ -179,21 +209,37 @@ private:
         }
         auto left_min = find_smallest(n->left, on_axis, depth + 1);
         auto right_min = find_smallest(n->right, on_axis, depth + 1);
-        auto smallest = std::get<0>(left_min)->arr_[on_axis]
-                < std::get<0>(right_min)->arr_[on_axis]
+        auto smallest = std::get<0>(left_min)->location.arr_[on_axis]
+                < std::get<0>(right_min)->location.arr_[on_axis]
             ? left_min
             : right_min;
         if (n->location.arr_[on_axis] < std::get<0>(smallest)->location.arr_[on_axis])
-            return n;
+            return { n, depth };
         else
             return smallest;
     }
-    std::shared_ptr<Node> find_biggest(
+    std::pair<std::shared_ptr<Node>, std::size_t> find_biggest(
         std::shared_ptr<Node>& n,
         const std::size_t on_axis,
         const std::size_t depth)
     {
         const auto axis = depth % Dim;
+        if (axis == on_axis) {
+            if (n->left)
+                return find_biggest(n->left, on_axis, depth + 1);
+            else
+                return { n, depth };
+        }
+        auto left_min = find_biggest(n->left, on_axis, depth + 1);
+        auto right_min = find_biggest(n->right, on_axis, depth + 1);
+        auto biggest = std::get<0>(left_min)->location.arr_[on_axis]
+                < std::get<0>(right_min)->location.arr_[on_axis]
+            ? left_min
+            : right_min;
+        if (n->location.arr_[on_axis] > std::get<0>(biggest)->location.arr_[on_axis])
+            return { n, depth };
+        else
+            return biggest;
     }
     void _remove(const point_t& pt,
         std::shared_ptr<Node>& n,
@@ -202,15 +248,17 @@ private:
         const auto axis = depth % Dim;
         // no match case
         if (n->location != pt) {
-            const auto left = n->location.arr_[axis] <= pt.arr_[axis];
+            const auto left = n->location.arr_[axis] >= pt.arr_[axis];
             if (left && n->left)
                 return _remove(pt, n->left, depth + 1);
             else if (n->right)
                 return _remove(pt, n->right, depth + 1);
+            else
+                throw std::runtime_error("something is no yes");
         }
         // match case
         // no children case
-        if (!n->location.left && !n->location.right) {
+        if (!n->left && !n->right) {
             n = nullptr;
             return;
         }
@@ -218,7 +266,11 @@ private:
         if (n->right) {
             auto [smol, d] = find_smallest(n->right, axis, depth + 1);
             n->location = smol->location;
-            _remove(n->location, smol->location, d);
+            _remove(n->location, smol, d);
+        } else {
+            auto [big, d] = find_biggest(n->left, axis, depth + 1);
+            n->location = big->location;
+            _remove(n->location, big, d);
         }
     }
 
@@ -256,4 +308,5 @@ int main(void)
     };
     KDTree t = KDTree<3>::build_tree(points);
     t.add({ 0, 2, 3 });
+    // t.remove({ 1, 2, 3 });
 }
