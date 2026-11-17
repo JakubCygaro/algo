@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <format>
 #include <functional>
@@ -255,11 +256,11 @@ private:
             return { n, depth };
         }
         if (n->location.arr_[on_axis] > std::get<0>(biggest)->location.arr_[on_axis])
-            return { n, depth };
+           return { n, depth };
         else
             return biggest;
     }
-    void _remove(const point_t& pt,
+    bool _remove(const point_t& pt,
         std::shared_ptr<Node>& n,
         std::size_t depth)
     {
@@ -272,23 +273,23 @@ private:
             else if (n->right)
                 return _remove(pt, n->right, depth + 1);
             else
-                throw std::runtime_error("something is no yes");
+                return false;
         }
         // match case
         // no children case
         if (!n->left && !n->right) {
             n = nullptr;
-            return;
+            return true;;
         }
         // right child case
         if (n->right) {
             auto [smol, d] = find_smallest(n->right, axis, depth + 1);
             n->location = smol->location;
-            _remove(n->location, smol, d);
+            return _remove(n->location, smol, d);
         } else {
             auto [big, d] = find_biggest(n->left, axis, depth + 1);
             n->location = big->location;
-            _remove(n->location, big, d);
+            return _remove(n->location, big, d);
         }
     }
 
@@ -307,11 +308,12 @@ public:
         } else
             _add(pt, root, 0);
     }
-    void remove(const point_t& pt)
+    bool remove(const point_t& pt)
     {
         if (root != nullptr) {
-            _remove(pt, root, 0);
+            return _remove(pt, root, 0);
         }
+        return false;
     }
 };
 
@@ -326,5 +328,5 @@ int main(void)
     };
     KDTree t = KDTree<3>::build_tree(points);
     t.add({ 0, 2, 3 });
-    t.remove({ 1, 2, 3 });
+    assert(t.remove({ 1, 2, 3 }) && "element to remove not found in tree");
 }
