@@ -4,21 +4,16 @@
 #include <cstddef>
 #include <format>
 #include <functional>
-#include <iostream>
 #include <memory>
-#include <ostream>
-#include <print>
-#include <ranges>
 #include <span>
 #include <sstream>
-#include <stdexcept>
-#include <utility>
 #include <vector>
 template <std::size_t Dim>
 struct point;
 
 template <>
 struct point<3> {
+    static constexpr std::size_t size = 3;
     union {
         struct {
             float x { }, y { }, z { };
@@ -161,18 +156,10 @@ private:
         this_node->location = med;
         if (points.size() == 1)
             return this_node;
-        // std::println("axis: {}, points: {}", axis, points);
-        // for (const auto& p : points) {
-        //     std::print("{{ {} {} {} }} ", p.x, p.y, p.z);
-        // }
-        // std::println("med_idx: {}", med_idx);
-        // std::flush(std::cout);
         std::span<point_t> left_span = points
                                            .subspan(0, med_idx);
         std::span<point_t> right_span = points
                                             .subspan(med_idx + 1);
-        // std::println("left: {}", left_span);
-        // std::println("right: {}", right_span);
         if (left_span.size() > 0)
             this_node->left = _build_node(left_span, depth + 1);
         if (right_span.size() > 0)
