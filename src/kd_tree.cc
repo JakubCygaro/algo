@@ -5,23 +5,26 @@
 #include <format>
 #include <functional>
 #include <memory>
+#include <print>
 #include <span>
 #include <sstream>
+#include <utility>
 #include <vector>
 template <std::size_t Dim>
 struct point;
 
 template <>
 struct point<3> {
+    using value_t = float;
     static constexpr std::size_t size = 3;
     union {
         struct {
-            float x { }, y { }, z { };
+            value_t x { }, y { }, z { };
         };
-        float arr_[3];
+        value_t arr_[3];
     };
     point() = default;
-    point(float x, float y, float z)
+    point(value_t x, value_t y, value_t z)
         : x { x }
         , y { y }
         , z { z }
@@ -32,6 +35,16 @@ struct point<3> {
         return other.x == x && other.y == y && other.z == z;
     }
 };
+template <std::size_t Dim,
+    class point_t = point<Dim>,
+    class value_t = point_t::value_t,
+    class index = std::make_index_sequence<Dim>>
+constexpr value_t squared_distance(const point_t& a, const point_t& b)
+{
+    return [&]<std::size_t... I>(std::index_sequence<I...>) {
+        return (((a.arr_[I] - b.arr_[I]) * (a.arr_[I] - b.arr_[I])) + ...);
+    }(index { });
+}
 template <>
 struct std::formatter<point<3>, char> {
     template <class ParseContext>
@@ -128,6 +141,10 @@ template <std::size_t Dim>
 class KDTree {
 public:
     using point_t = point<Dim>;
+    struct current_best_t {
+        point_t point { };
+        typename point_t::value_t sq_dist { };
+    };
 
 private:
     struct Node {
@@ -243,7 +260,7 @@ private:
             return { n, depth };
         }
         if (n->location.arr_[on_axis] > std::get<0>(biggest)->location.arr_[on_axis])
-           return { n, depth };
+            return { n, depth };
         else
             return biggest;
     }
@@ -266,17 +283,55 @@ private:
         // no children case
         if (!n->left && !n->right) {
             n = nullptr;
-            return true;;
+            return true;
+            ;
         }
         // right child case
         if (n->right) {
             auto [smol, d] = find_smallest(n->right, axis, depth + 1);
             n->location = smol->location;
             return _remove(n->location, smol, d);
-        } else {
+        }
+        // only left child case
+        else {
             auto [big, d] = find_biggest(n->left, axis, depth + 1);
             n->location = big->location;
             return _remove(n->location, big, d);
+        }
+    }
+    point_t _nn_search(
+        const point_t& pt,
+        std::shared_ptr<Node> n,
+        std::optional<current_best_t>* current_best,
+        const std::size_t depth)
+    {
+        const auto axis = depth % Dim;
+        std::shared_ptr<Node>* into { };
+        if (pt.arr_[axis] <= n->location.arr_[axis]) {
+            into = &n->left;
+        } else {
+            into = &n->right;
+        }
+        const auto save_if_best = [&](std::shared_ptr<Node> node)
+            -> decltype(distance<Dim>()) {
+            const auto dist = distance<Dim>(
+                node->location, pt);
+            if (!current_best->has_value()
+                || current_best->value().sq_dist > dist) {
+                current_best->value().point = node->location;
+                current_best->value().sq_dist = dist;
+            }
+            return current_best->value().sq_dist;
+        };
+        if (*into != nullptr) {
+            const auto dist = save_if_best(*into);
+            _nn_search(pt, *into, current_best, depth + 1);
+            // unwind
+            save_if_best(n);
+        } else {
+            // leaf reached
+            const auto dist = save_if_best(n);
+            return n->location;
         }
     }
 
@@ -301,6 +356,10 @@ public:
             return _remove(pt, root, 0);
         }
         return false;
+    }
+    point_t nn_search()
+    {
+        std::optional<point_t> current_best;
     }
 };
 
