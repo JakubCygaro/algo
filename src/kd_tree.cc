@@ -299,7 +299,7 @@ private:
             return _remove(n->location, big, d);
         }
     }
-    point_t _nn_search(
+    void _nn_search(
         const point_t& pt,
         std::shared_ptr<Node> n,
         std::optional<current_best_t>* current_best,
@@ -324,14 +324,24 @@ private:
             return current_best->value().sq_dist;
         };
         if (*into != nullptr) {
-            const auto dist = save_if_best(*into);
+            save_if_best(*into);
             _nn_search(pt, *into, current_best, depth + 1);
             // unwind
-            save_if_best(n);
+            const auto dist = save_if_best(n);
+            // plane crossing
+            // simple comparison to see whether the distance between
+            // the splitting coordinate of the search point and current node is less than
+            // the distance (overall coordinates) from the search point to the current best.
+            if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
+                < distance<Dim>(pt, (*current_best)->point)) {
+                auto other_branch = *into == n->left ? n->right : n->left;
+                _nn_search(pt, other_branch, current_best, depth + 1);
+            }
+            return;
         } else {
             // leaf reached
             const auto dist = save_if_best(n);
-            return n->location;
+            return;
         }
     }
 
@@ -357,9 +367,11 @@ public:
         }
         return false;
     }
-    point_t nn_search()
+    point_t nn_search(const point_t& pt)
     {
         std::optional<point_t> current_best;
+        _nn_search(pt, root, &current_best, 0);
+        return *current_best;
     }
 };
 
