@@ -187,9 +187,9 @@ private:
                 break;
             }
         }
-        std::println("points: {}", points);
+        // std::println("points: {}", points);
         auto this_node = std::make_shared<Node>();
-        this_node->location = med;
+        this_node->location = points[med_idx];
         if (points.size() == 1)
             return this_node;
         std::span<point_t> left_span = points
@@ -215,11 +215,11 @@ private:
         } else {
             into = &n->right;
         }
-        std::println("add {} on {} of {} | axis {}",
-            pt,
-            into == &(n->left) ? "left" : "right",
-            n->location,
-            axis);
+        // std::println("add {} on {} of {} | axis {}",
+            // pt,
+            // into == &(n->left) ? "left" : "right",
+            // n->location,
+            // axis);
         if (*into != nullptr) {
             _add(pt, *into, depth + 1);
         } else {
@@ -315,14 +315,14 @@ private:
         // right child case
         if ((*n)->right) {
             auto [smol, d] = find_smallest((*n)->right, axis, depth + 1);
-            std::println("smol {}", (*smol)->location);
+            // std::println("smol {}", (*smol)->location);
             (*n)->location = (*smol)->location;
             return _remove((*n)->location, smol, d);
         }
         // only left child case
         else {
             auto [big, d] = find_biggest((*n)->left, axis, depth + 1);
-            std::println("big {}", (*big)->location);
+            // std::println("big {}", (*big)->location);
             (*n)->location = (*big)->location;
             return _remove((*n)->location, big, d);
         }
@@ -379,7 +379,7 @@ private:
             return;
         } else {
             // leaf reached
-            std::println("leaf reached {}", n->location);
+            // std::println("leaf reached {}", n->location);
             save_if_best(n);
             return;
         }
@@ -476,7 +476,7 @@ int main(void)
     std::println("nearest to {} -> {} :: {}",
         query, found, squared_distance<3>(found, query));
     t.add({ 1, 1, 1 });
-    t.print_tree();
+    // t.print_tree();
     // t.remove({ 0, 2, 3 });
     found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
