@@ -32,6 +32,14 @@ struct point<3> {
         , z { z }
     {
     }
+    constexpr value_t& operator[](const std::size_t& i)
+    {
+        return arr_[i];
+    }
+    constexpr const value_t& operator[](const std::size_t& i) const
+    {
+        return arr_[i];
+    }
     constexpr auto operator==(const point& other) const
     {
         return other.x == x && other.y == y && other.z == z;
@@ -171,6 +179,14 @@ private:
             return a.arr_[axis] >= b.arr_[axis];
         };
         auto [med, med_idx] = median<point<Dim>>(points, by_axis);
+        for (auto i = med_idx + 1; i < points.size();) {
+            if (points[i].arr_[axis] == med.arr_[axis]) {
+                i++;
+            } else {
+                med_idx = i - 1;
+                break;
+            }
+        }
         std::println("points: {}", points);
         auto this_node = std::make_shared<Node>();
         this_node->location = med;
@@ -197,9 +213,12 @@ private:
         } else {
             into = &n->right;
         }
+        std::println("add {} on {} of {} | axis {}",
+            pt,
+            into == &(n->left) ? "left" : "right",
+            n->location,
+            axis);
         if (*into != nullptr) {
-            std::println("add on {}",
-                *into == n->left ? "left" : "right");
             _add(pt, *into, depth + 1);
         } else {
             *into = std::make_shared<Node>(pt);
@@ -341,25 +360,39 @@ private:
             // simple comparison to see whether the distance between
             // the splitting coordinate of the search point and current node is less than
             // the distance (overall coordinates) from the search point to the current best.
-            if (squared_distance<Dim>(pt, n->location)
+            // if (squared_distance<Dim>(pt, n->location)
+            //     < squared_distance<Dim>(pt, (*current_best)->point)) {
+            //     auto other_branch = *into == n->left ? n->right : n->left;
+            //     if (!other_branch)
+            //         return;
+            //     _nn_search(pt, other_branch, current_best, depth + 1);
+            // }
+            if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
                 < squared_distance<Dim>(pt, (*current_best)->point)) {
                 auto other_branch = *into == n->left ? n->right : n->left;
                 if (!other_branch)
                     return;
                 _nn_search(pt, other_branch, current_best, depth + 1);
             }
-            // if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
-            //     < squared_distance<Dim>(pt, (*current_best)->point)) {
-            //     auto other_branch = *into == n->left ? n->right : n->left;
-            //     if(!other_branch) return;
-            //     _nn_search(pt, other_branch, current_best, depth + 1);
-            // }
             return;
         } else {
             // leaf reached
+            std::println("leaf reached {}", n->location);
             save_if_best(n);
             return;
         }
+    }
+
+private:
+    void print_tree_impl(std::shared_ptr<Node> x, int depth)
+    {
+        if (x->right)
+            print_tree_impl(x->right, depth + 2);
+        std::printf("%*s", x == root ? 0 : depth, x == root ? "" : "-");
+        std::print("{}", x->location);
+        std::printf("\n");
+        if (x->left)
+            print_tree_impl(x->left, depth + 2);
     }
 
 public:
@@ -396,6 +429,12 @@ public:
     {
         return !!root;
     }
+    void print_tree()
+    {
+        std::printf("======\n");
+        print_tree_impl(root, 0);
+        std::printf("======\n");
+    }
 };
 
 int main(void)
@@ -407,6 +446,8 @@ int main(void)
         { 4, 4, 4 },
         { 4, 4, 9 },
         { 4, 1, 4 },
+        // { 0, 2, 3 },
+        // { 1, 1, 1 },
     };
     std::flush(std::cout);
     KDTree t = KDTree<3>::build_tree(points);
@@ -433,6 +474,7 @@ int main(void)
     std::println("nearest to {} -> {} :: {}",
         query, found, squared_distance<3>(found, query));
     t.add({ 1, 1, 1 });
+    t.print_tree();
     // t.remove({ 0, 2, 3 });
     found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
