@@ -208,7 +208,9 @@ private:
     {
         const auto axis = depth % Dim;
         std::shared_ptr<Node>* into { };
-        if (pt.arr_[axis] <= n->location.arr_[axis]) {
+        if (pt == n->location) {
+            return;
+        } else if (pt.arr_[axis] <= n->location.arr_[axis]) {
             into = &n->left;
         } else {
             into = &n->right;
