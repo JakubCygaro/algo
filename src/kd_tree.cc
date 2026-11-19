@@ -334,12 +334,18 @@ private:
             // simple comparison to see whether the distance between
             // the splitting coordinate of the search point and current node is less than
             // the distance (overall coordinates) from the search point to the current best.
-            if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
+            if (squared_distance<Dim>(pt, n->location)
                 < squared_distance<Dim>(pt, (*current_best)->point)) {
                 auto other_branch = *into == n->left ? n->right : n->left;
                 if(!other_branch) return;
                 _nn_search(pt, other_branch, current_best, depth + 1);
             }
+            // if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
+            //     < squared_distance<Dim>(pt, (*current_best)->point)) {
+            //     auto other_branch = *into == n->left ? n->right : n->left;
+            //     if(!other_branch) return;
+            //     _nn_search(pt, other_branch, current_best, depth + 1);
+            // }
             return;
         } else {
             // leaf reached
@@ -385,6 +391,7 @@ int main(void)
         { 2, 1, 3 },
         { 8, 6, 0 },
         { 4, 4, 4 },
+        { 4, 4, 9 },
         { 4, 1, 4 },
     };
     KDTree t = KDTree<3>::build_tree(points);
@@ -392,4 +399,7 @@ int main(void)
     assert(t.remove({ 1, 2, 3 }) && "element to remove not found in tree");
     point3d query = { 9, 6, 1 };
     std::println("nearest to {} -> {}", query, t.nn_search(query));
+    query = { 4, 4, 8 };
+    std::println("nearest to {} -> {}", query, t.nn_search(query));
+
 }
