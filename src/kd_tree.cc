@@ -284,17 +284,18 @@ private:
         if (!n->left && !n->right) {
             n = nullptr;
             return true;
-            ;
         }
         // right child case
         if (n->right) {
             auto [smol, d] = find_smallest(n->right, axis, depth + 1);
+            std::println("smol {}", smol->location);
             n->location = smol->location;
             return _remove(n->location, smol, d);
         }
         // only left child case
         else {
             auto [big, d] = find_biggest(n->left, axis, depth + 1);
+            std::println("big {}", big->location);
             n->location = big->location;
             return _remove(n->location, big, d);
         }
@@ -337,7 +338,8 @@ private:
             if (squared_distance<Dim>(pt, n->location)
                 < squared_distance<Dim>(pt, (*current_best)->point)) {
                 auto other_branch = *into == n->left ? n->right : n->left;
-                if(!other_branch) return;
+                if (!other_branch)
+                    return;
                 _nn_search(pt, other_branch, current_best, depth + 1);
             }
             // if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
@@ -401,5 +403,11 @@ int main(void)
     std::println("nearest to {} -> {}", query, t.nn_search(query));
     query = { 4, 4, 8 };
     std::println("nearest to {} -> {}", query, t.nn_search(query));
-
+    query = { 0, 0, 0 };
+    std::println("nearest to {} -> {}", query, t.nn_search(query));
+    t.add({ 1, 1, 1 });
+    // t.remove({ 0, 2, 3 });
+    std::println("nearest to {} -> {}", query, t.nn_search(query));
+    std::println("{}", squared_distance<3>(point3d { 0, 0, 0 }, { 1, 1, 1 }));
+    std::println("{}", squared_distance<3>(point3d { 0, 2, 3 }, { 1, 1, 1 }));
 }
