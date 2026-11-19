@@ -4,7 +4,9 @@
 #include <cstddef>
 #include <format>
 #include <functional>
+#include <iostream>
 #include <memory>
+#include <ostream>
 #include <print>
 #include <span>
 #include <sstream>
@@ -169,6 +171,7 @@ private:
             return a.arr_[axis] >= b.arr_[axis];
         };
         auto [med, med_idx] = median<point<Dim>>(points, by_axis);
+        std::println("points: {}", points);
         auto this_node = std::make_shared<Node>();
         this_node->location = med;
         if (points.size() == 1)
@@ -195,12 +198,14 @@ private:
             into = &n->right;
         }
         if (*into != nullptr) {
+            std::println("add on {}",
+                *into == n->left ? "left" : "right");
             _add(pt, *into, depth + 1);
         } else {
             *into = std::make_shared<Node>(pt);
         }
     }
-    std::pair<std::shared_ptr<Node>, std::size_t> find_smallest(
+    std::pair<std::shared_ptr<Node>*, std::size_t> find_smallest(
         std::shared_ptr<Node>& n,
         const std::size_t on_axis,
         const std::size_t depth)
@@ -210,14 +215,14 @@ private:
             if (n->left)
                 return find_smallest(n->left, on_axis, depth + 1);
             else
-                return { n, depth };
+                return { &n, depth };
         }
-        std::pair<std::shared_ptr<Node>, std::size_t> smallest;
+        std::pair<std::shared_ptr<Node>*, std::size_t> smallest;
         if (n->left && n->right) {
             auto left_min = find_smallest(n->left, on_axis, depth + 1);
             auto right_min = find_smallest(n->right, on_axis, depth + 1);
-            smallest = std::get<0>(left_min)->location.arr_[on_axis]
-                    < std::get<0>(right_min)->location.arr_[on_axis]
+            smallest = (*std::get<0>(left_min))->location.arr_[on_axis]
+                    < (*std::get<0>(right_min))->location.arr_[on_axis]
                 ? left_min
                 : right_min;
         } else if (n->right) {
@@ -225,14 +230,15 @@ private:
         } else if (n->left) {
             smallest = find_smallest(n->left, on_axis, depth + 1);
         } else {
-            return { n, depth };
+            return { &n, depth };
         }
-        if (n->location.arr_[on_axis] < std::get<0>(smallest)->location.arr_[on_axis])
-            return { n, depth };
+        if (n->location.arr_[on_axis]
+            < (*std::get<0>(smallest))->location.arr_[on_axis])
+            return { &n, depth };
         else
             return smallest;
     }
-    std::pair<std::shared_ptr<Node>, std::size_t> find_biggest(
+    std::pair<std::shared_ptr<Node>*, std::size_t> find_biggest(
         std::shared_ptr<Node>& n,
         const std::size_t on_axis,
         const std::size_t depth)
@@ -242,14 +248,14 @@ private:
             if (n->right)
                 return find_biggest(n->right, on_axis, depth + 1);
             else
-                return { n, depth };
+                return { &n, depth };
         }
-        std::pair<std::shared_ptr<Node>, std::size_t> biggest;
+        std::pair<std::shared_ptr<Node>*, std::size_t> biggest;
         if (n->left && n->right) {
             auto left_min = find_biggest(n->left, on_axis, depth + 1);
             auto right_min = find_biggest(n->right, on_axis, depth + 1);
-            biggest = std::get<0>(left_min)->location.arr_[on_axis]
-                    > std::get<0>(right_min)->location.arr_[on_axis]
+            biggest = (*std::get<0>(left_min))->location.arr_[on_axis]
+                    > (*std::get<0>(right_min))->location.arr_[on_axis]
                 ? left_min
                 : right_min;
         } else if (n->right) {
@@ -257,47 +263,47 @@ private:
         } else if (n->left) {
             biggest = find_biggest(n->left, on_axis, depth + 1);
         } else {
-            return { n, depth };
+            return { &n, depth };
         }
-        if (n->location.arr_[on_axis] > std::get<0>(biggest)->location.arr_[on_axis])
-            return { n, depth };
+        if (n->location.arr_[on_axis] > (*std::get<0>(biggest))->location.arr_[on_axis])
+            return { &n, depth };
         else
             return biggest;
     }
     bool _remove(const point_t& pt,
-        std::shared_ptr<Node>& n,
+        std::shared_ptr<Node>* n,
         std::size_t depth)
     {
         const auto axis = depth % Dim;
         // no match case
-        if (n->location != pt) {
-            const auto left = n->location.arr_[axis] >= pt.arr_[axis];
-            if (left && n->left)
-                return _remove(pt, n->left, depth + 1);
-            else if (n->right)
-                return _remove(pt, n->right, depth + 1);
+        if ((*n)->location != pt) {
+            const auto left = (*n)->location.arr_[axis] >= pt.arr_[axis];
+            if (left && (*n)->left)
+                return _remove(pt, &(*n)->left, depth + 1);
+            else if ((*n)->right)
+                return _remove(pt, &(*n)->right, depth + 1);
             else
                 return false;
         }
         // match case
         // no children case
-        if (!n->left && !n->right) {
-            n = nullptr;
+        if (!(*n)->left && !(*n)->right) {
+            *n = nullptr;
             return true;
         }
         // right child case
-        if (n->right) {
-            auto [smol, d] = find_smallest(n->right, axis, depth + 1);
-            std::println("smol {}", smol->location);
-            n->location = smol->location;
-            return _remove(n->location, smol, d);
+        if ((*n)->right) {
+            auto [smol, d] = find_smallest((*n)->right, axis, depth + 1);
+            std::println("smol {}", (*smol)->location);
+            (*n)->location = (*smol)->location;
+            return _remove((*n)->location, smol, d);
         }
         // only left child case
         else {
-            auto [big, d] = find_biggest(n->left, axis, depth + 1);
-            std::println("big {}", big->location);
-            n->location = big->location;
-            return _remove(n->location, big, d);
+            auto [big, d] = find_biggest((*n)->left, axis, depth + 1);
+            std::println("big {}", (*big)->location);
+            (*n)->location = (*big)->location;
+            return _remove((*n)->location, big, d);
         }
     }
     void _nn_search(
@@ -374,15 +380,21 @@ public:
     bool remove(const point_t& pt)
     {
         if (root != nullptr) {
-            return _remove(pt, root, 0);
+            return _remove(pt, &root, 0);
         }
         return false;
     }
     point_t nn_search(const point_t& pt)
     {
         std::optional<current_best_t> current_best;
+        if (!root)
+            throw std::runtime_error("empty tree");
         _nn_search(pt, root, &current_best, 0);
         return current_best->point;
+    }
+    bool empty() const
+    {
+        return !!root;
     }
 };
 
@@ -396,18 +408,33 @@ int main(void)
         { 4, 4, 9 },
         { 4, 1, 4 },
     };
+    std::flush(std::cout);
     KDTree t = KDTree<3>::build_tree(points);
     t.add({ 0, 2, 3 });
-    assert(t.remove({ 1, 2, 3 }) && "element to remove not found in tree");
+    // assert(t.remove(points[0]) && "element to remove not found in tree");
+    // assert(t.remove(points[1]) && "element to remove not found in tree");
+    // assert(t.remove(points[2]) && "element to remove not found in tree");
+    // assert(t.remove(points[3]) && "element to remove not found in tree");
+    // assert(t.remove(points[4]) && "element to remove not found in tree");
+    // assert(t.remove(points[5]) && "element to remove not found in tree");
+    // assert(t.remove({ 0, 2, 3 }) && "element to remove not found in tree");
+    // t.nn_search({ 0, 2, 3 });
+    // return 0;
     point3d query = { 9, 6, 1 };
-    std::println("nearest to {} -> {}", query, t.nn_search(query));
+    point3d found = t.nn_search(query);
+    std::println("nearest to {} -> {} :: {}",
+        query, found, squared_distance<3>(found, query));
     query = { 4, 4, 8 };
-    std::println("nearest to {} -> {}", query, t.nn_search(query));
+    found = t.nn_search(query);
+    std::println("nearest to {} -> {} :: {}",
+        query, found, squared_distance<3>(found, query));
     query = { 0, 0, 0 };
-    std::println("nearest to {} -> {}", query, t.nn_search(query));
+    found = t.nn_search(query);
+    std::println("nearest to {} -> {} :: {}",
+        query, found, squared_distance<3>(found, query));
     t.add({ 1, 1, 1 });
     // t.remove({ 0, 2, 3 });
-    std::println("nearest to {} -> {}", query, t.nn_search(query));
-    std::println("{}", squared_distance<3>(point3d { 0, 0, 0 }, { 1, 1, 1 }));
-    std::println("{}", squared_distance<3>(point3d { 0, 2, 3 }, { 1, 1, 1 }));
+    found = t.nn_search(query);
+    std::println("nearest to {} -> {} :: {}",
+        query, found, squared_distance<3>(found, query));
 }
