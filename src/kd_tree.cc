@@ -313,13 +313,15 @@ private:
             into = &n->right;
         }
         const auto save_if_best = [&](std::shared_ptr<Node> node)
-            -> decltype(distance<Dim>(pt, pt)) {
-            const auto dist = distance<Dim>(
+            -> decltype(squared_distance<Dim>(pt, pt)) {
+            const auto dist = squared_distance<Dim>(
                 node->location, pt);
             if (!current_best->has_value()
                 || current_best->value().sq_dist > dist) {
-                current_best->value().point = node->location;
-                current_best->value().sq_dist = dist;
+                (*current_best) = current_best_t {
+                    .point = node->location,
+                    .sq_dist = dist,
+                };
             }
             return current_best->value().sq_dist;
         };
@@ -327,20 +329,20 @@ private:
             save_if_best(*into);
             _nn_search(pt, *into, current_best, depth + 1);
             // unwind
-            const auto dist = save_if_best(n);
+            save_if_best(n);
             // plane crossing
             // simple comparison to see whether the distance between
             // the splitting coordinate of the search point and current node is less than
             // the distance (overall coordinates) from the search point to the current best.
             if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
-                < distance<Dim>(pt, (*current_best)->point)) {
+                < squared_distance<Dim>(pt, (*current_best)->point)) {
                 auto other_branch = *into == n->left ? n->right : n->left;
                 _nn_search(pt, other_branch, current_best, depth + 1);
             }
             return;
         } else {
             // leaf reached
-            const auto dist = save_if_best(n);
+            save_if_best(n);
             return;
         }
     }
@@ -369,9 +371,9 @@ public:
     }
     point_t nn_search(const point_t& pt)
     {
-        std::optional<point_t> current_best;
+        std::optional<current_best_t> current_best;
         _nn_search(pt, root, &current_best, 0);
-        return *current_best;
+        return current_best->point;
     }
 };
 
@@ -387,4 +389,6 @@ int main(void)
     KDTree t = KDTree<3>::build_tree(points);
     t.add({ 0, 2, 3 });
     assert(t.remove({ 1, 2, 3 }) && "element to remove not found in tree");
+    point3d query = { 9, 6, 1 };
+    std::println("nearest to {} -> {}", query, t.nn_search(query));
 }
