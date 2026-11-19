@@ -337,6 +337,7 @@ private:
             if (std::pow(pt.arr_[axis] - n->location.arr_[axis], 2.0)
                 < squared_distance<Dim>(pt, (*current_best)->point)) {
                 auto other_branch = *into == n->left ? n->right : n->left;
+                if(!other_branch) return;
                 _nn_search(pt, other_branch, current_best, depth + 1);
             }
             return;
