@@ -313,7 +313,7 @@ private:
             into = &n->right;
         }
         const auto save_if_best = [&](std::shared_ptr<Node> node)
-            -> decltype(distance<Dim>()) {
+            -> decltype(distance<Dim>(pt, pt)) {
             const auto dist = distance<Dim>(
                 node->location, pt);
             if (!current_best->has_value()
