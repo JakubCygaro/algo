@@ -181,6 +181,7 @@ public:
     };
 
 private:
+    static_assert(Dim >= 2, "Dim too small");
     struct Node {
         Node() = default;
         Node(point_t pt)
@@ -191,7 +192,7 @@ private:
         std::shared_ptr<Node> left { }, right { };
     };
     std::shared_ptr<Node> root { };
-    static_assert(Dim >= 2, "Dim too small");
+    std::size_t m_size { 0 };
     static std::shared_ptr<Node> _build_node(
         std::span<point<Dim>> points,
         std::size_t depth)
@@ -248,6 +249,7 @@ private:
             _add(pt, *into, depth + 1);
         } else {
             *into = std::make_shared<Node>(pt);
+            m_size++;
         }
     }
     std::pair<std::shared_ptr<Node>*, std::size_t> find_smallest(
@@ -335,6 +337,7 @@ private:
         // no children case
         if (!(*n)->left && !(*n)->right) {
             *n = nullptr;
+            m_size--;
             return true;
         }
         // right child case
@@ -428,6 +431,7 @@ public:
     static KDTree build_tree(std::span<point<Dim>> points)
     {
         auto tree = KDTree<Dim>();
+        tree.m_size = points.size();
         tree.root = _build_node(points, 0);
         return tree;
     }
@@ -436,6 +440,7 @@ public:
         if (root == nullptr) {
             root = std::make_shared<Node>();
             root->location = pt;
+            m_size++;
         } else
             _add(pt, root, 0);
     }
@@ -457,6 +462,14 @@ public:
     bool empty() const
     {
         return !!root;
+    }
+    void clear()
+    {
+        root = nullptr;
+    }
+    std::size_t size() const
+    {
+        return m_size;
     }
     void print_tree()
     {
@@ -520,13 +533,14 @@ void test_kd_tree_2(void)
         cum_assert(*found == p, "wanted {} but got {}", p, *found);
     }
 }
+// TODO: only this test sometimes fails and the tree is fucked up with
+// either equal elements to the right of a node or bigger to the left
+// REMOVE must be broken
 void test_kd_tree_3(void)
 {
     auto input = make_test_input();
     auto tree = KDTree<3>::build_tree(input);
     for (const point3d& p : input) {
-        std::println("before remove {}", p);
-        tree.print_tree();
         auto found = tree.nn_search(p);
         cum_assert(found.has_value(), "");
         cum_assert(*found == p, "wanted {} but got {}",
@@ -539,12 +553,47 @@ void test_kd_tree_3(void)
             "Looked for {}", p);
     }
 }
+void test_kd_tree_4(void)
+{
+    struct closest_t {
+        point3d p;
+        point3d::value_t sq_dist;
+    };
+    auto input1 = make_test_input();
+    std::unordered_map<point3d, closest_t> closest_to;
+    auto input2 = make_test_input();
+    std::ranges::for_each(input1, [&](const auto& pa) {
+        std::optional<closest_t> closest;
+        for (const auto& pb : input2) {
+            const auto dist = squared_distance<3>(pa, pb);
+            if (!closest || closest->sq_dist > dist) {
+                closest = closest_t {
+                    .p = pb,
+                    .sq_dist = dist,
+                };
+            }
+        }
+        closest_to[pa] = *closest;
+    });
+    auto tree = KDTree<3>::build_tree(input1);
+    for (const point3d& p : input1) {
+        auto found = tree.nn_search(p);
+        cum_assert(found.has_value(), "");
+        cum_assert(*found == closest_to[p].p
+                || squared_distance<3>(closest_to[p].p, *found) == closest_to[p].sq_dist,
+            "wanted {} (dist :: {}) but got {} (dist :: {})",
+            closest_to[p].p, squared_distance<3>(closest_to[p].p, p),
+            *found, squared_distance<3>(closest_to[p].p, *found),
+            cum_eval(tree.print_tree(); std::flush(std::cout)));
+    }
+}
 
 int main(void)
 {
     test_kd_tree_1();
     test_kd_tree_2();
     test_kd_tree_3();
+    test_kd_tree_4();
     return 0;
     std::vector<point<3>> points = {
         { 1, 2, 3 },
