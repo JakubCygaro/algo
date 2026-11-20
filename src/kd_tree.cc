@@ -1,15 +1,20 @@
 #include "common.hpp"
+#include "cum_assert.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>
 #include <format>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <print>
+#include <ranges>
+#include <set>
 #include <span>
 #include <sstream>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 template <std::size_t Dim>
@@ -67,13 +72,32 @@ struct std::formatter<point<3>, char> {
     FmtContext::iterator format(point<3> p, FmtContext& ctx) const
     {
         std::ostringstream out;
-        out << std::format("{{ {} {} {} }} ", p.x, p.y, p.z);
+        out << std::format("{{ .x = {}, .y = {}, .z = {} }}", p.x, p.y, p.z);
+
+        return std::ranges::copy(std::move(out).str(), ctx.out()).out;
+    }
+};
+template <>
+struct std::formatter<point<2>, char> {
+    template <class ParseContext>
+    constexpr ParseContext::iterator parse(ParseContext& ctx)
+    {
+        auto it = ctx.begin();
+        return it;
+    }
+    template <class FmtContext>
+    FmtContext::iterator format(point<3> p, FmtContext& ctx) const
+    {
+        std::ostringstream out;
+        out << std::format("{{ {} {} }}", p.x, p.y);
 
         return std::ranges::copy(std::move(out).str(), ctx.out()).out;
     }
 };
 using point3d = point<3>;
 using vec3 = point<3>;
+using point2d = point<2>;
+using vec2 = point<2>;
 
 template <class T>
 using comparer_fn_t = std::function<
@@ -216,10 +240,10 @@ private:
             into = &n->right;
         }
         // std::println("add {} on {} of {} | axis {}",
-            // pt,
-            // into == &(n->left) ? "left" : "right",
-            // n->location,
-            // axis);
+        // pt,
+        // into == &(n->left) ? "left" : "right",
+        // n->location,
+        // axis);
         if (*into != nullptr) {
             _add(pt, *into, depth + 1);
         } else {
@@ -243,7 +267,7 @@ private:
             auto left_min = find_smallest(n->left, on_axis, depth + 1);
             auto right_min = find_smallest(n->right, on_axis, depth + 1);
             smallest = (*std::get<0>(left_min))->location.arr_[on_axis]
-                    < (*std::get<0>(right_min))->location.arr_[on_axis]
+                    <= (*std::get<0>(right_min))->location.arr_[on_axis]
                 ? left_min
                 : right_min;
         } else if (n->right) {
@@ -254,7 +278,7 @@ private:
             return { &n, depth };
         }
         if (n->location.arr_[on_axis]
-            < (*std::get<0>(smallest))->location.arr_[on_axis])
+            <= (*std::get<0>(smallest))->location.arr_[on_axis])
             return { &n, depth };
         else
             return smallest;
@@ -276,7 +300,7 @@ private:
             auto left_min = find_biggest(n->left, on_axis, depth + 1);
             auto right_min = find_biggest(n->right, on_axis, depth + 1);
             biggest = (*std::get<0>(left_min))->location.arr_[on_axis]
-                    > (*std::get<0>(right_min))->location.arr_[on_axis]
+                    >= (*std::get<0>(right_min))->location.arr_[on_axis]
                 ? left_min
                 : right_min;
         } else if (n->right) {
@@ -286,7 +310,8 @@ private:
         } else {
             return { &n, depth };
         }
-        if (n->location.arr_[on_axis] > (*std::get<0>(biggest))->location.arr_[on_axis])
+        if (n->location.arr_[on_axis]
+            >= (*std::get<0>(biggest))->location.arr_[on_axis])
             return { &n, depth };
         else
             return biggest;
@@ -388,9 +413,10 @@ private:
 private:
     void print_tree_impl(std::shared_ptr<Node> x, int depth)
     {
+        const auto axis = (depth / 2) % Dim;
         if (x->right)
             print_tree_impl(x->right, depth + 2);
-        std::printf("%*s", x == root ? 0 : depth, x == root ? "" : "-");
+        std::printf("%*d", x == root ? 0 : depth, x == root ? 0 : (int)axis);
         std::print("{}", x->location);
         std::printf("\n");
         if (x->left)
@@ -398,6 +424,7 @@ private:
     }
 
 public:
+    KDTree() = default;
     static KDTree build_tree(std::span<point<Dim>> points)
     {
         auto tree = KDTree<Dim>();
@@ -419,11 +446,11 @@ public:
         }
         return false;
     }
-    point_t nn_search(const point_t& pt)
+    std::optional<point_t> nn_search(const point_t& pt)
     {
         std::optional<current_best_t> current_best;
         if (!root)
-            throw std::runtime_error("empty tree");
+            return { };
         _nn_search(pt, root, &current_best, 0);
         return current_best->point;
     }
@@ -439,8 +466,86 @@ public:
     }
 };
 
+template <>
+struct std::hash<point3d> {
+    constexpr std::size_t
+    operator()(const point3d& a)
+        const noexcept
+    {
+        return std::hash<float>()(a.x)
+            ^ std::hash<float>()(a.y)
+            ^ std::hash<float>()(a.z);
+    }
+};
+
+constexpr std::size_t INPUT_POINT_ARR_SZ = 30;
+constexpr auto INPUT_POINT_MAX = 50;
+
+std::vector<point3d> make_test_input(void)
+{
+    std::vector<point3d> input;
+    std::unordered_set<point3d> set;
+    for (auto i = 0UL; i < INPUT_POINT_ARR_SZ; i++) {
+        const auto p = point3d {
+            (float)common::get_random_in_range(-INPUT_POINT_MAX, INPUT_POINT_MAX),
+            (float)common::get_random_in_range(-INPUT_POINT_MAX, INPUT_POINT_MAX),
+            (float)common::get_random_in_range(-INPUT_POINT_MAX, INPUT_POINT_MAX),
+        };
+        set.insert(p);
+    }
+    input.assign_range(set);
+    return input;
+}
+
+void test_kd_tree_1(void)
+{
+    auto input = make_test_input();
+    auto tree = KDTree<3>::build_tree(input);
+    for (const point3d& p : input) {
+        auto found = tree.nn_search(p);
+        cum_assert(found.has_value(), "");
+        cum_assert(*found == p, "wanted {} but got {}", p, *found);
+    }
+}
+
+void test_kd_tree_2(void)
+{
+    auto input = make_test_input();
+    auto tree = KDTree<3>();
+    std::ranges::for_each(input,
+        std::bind(&KDTree<3>::add, &tree, std::placeholders::_1));
+    for (const point3d& p : input) {
+        auto found = tree.nn_search(p);
+        cum_assert(found.has_value(), "");
+        cum_assert(*found == p, "wanted {} but got {}", p, *found);
+    }
+}
+void test_kd_tree_3(void)
+{
+    auto input = make_test_input();
+    auto tree = KDTree<3>::build_tree(input);
+    for (const point3d& p : input) {
+        std::println("before remove {}", p);
+        tree.print_tree();
+        auto found = tree.nn_search(p);
+        cum_assert(found.has_value(), "");
+        cum_assert(*found == p, "wanted {} but got {}",
+            p,
+            *found,
+            cum_eval(tree.print_tree(); std::flush(std::cout)));
+        tree.remove(p);
+        found = tree.nn_search(p);
+        cum_assert(!found.has_value() || *found != p,
+            "Looked for {}", p);
+    }
+}
+
 int main(void)
 {
+    test_kd_tree_1();
+    test_kd_tree_2();
+    test_kd_tree_3();
+    return 0;
     std::vector<point<3>> points = {
         { 1, 2, 3 },
         { 2, 1, 3 },
@@ -464,21 +569,27 @@ int main(void)
     // t.nn_search({ 0, 2, 3 });
     // return 0;
     point3d query = { 9, 6, 1 };
-    point3d found = t.nn_search(query);
+    std::optional<point3d> found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
-        query, found, squared_distance<3>(found, query));
+        query, *found, squared_distance<3>(*found, query));
     query = { 4, 4, 8 };
     found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
-        query, found, squared_distance<3>(found, query));
+        query, *found, squared_distance<3>(*found, query));
     query = { 0, 0, 0 };
     found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
-        query, found, squared_distance<3>(found, query));
+        query, *found, squared_distance<3>(*found, query));
     t.add({ 1, 1, 1 });
-    // t.print_tree();
-    // t.remove({ 0, 2, 3 });
+    t.print_tree();
+    t.remove({ 1, 2, 3 });
+    t.add({ 10, 5, 0 });
+    t.add({ 10, 5, 1 });
+    t.print_tree();
+    t.remove({ 4, 1, 4 });
+    t.print_tree();
     found = t.nn_search(query);
     std::println("nearest to {} -> {} :: {}",
-        query, found, squared_distance<3>(found, query));
+        query, *found, squared_distance<3>(*found, query));
+    std::flush(std::cout);
 }
