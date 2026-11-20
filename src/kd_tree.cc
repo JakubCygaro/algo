@@ -535,7 +535,11 @@ void test_kd_tree_2(void)
 }
 // TODO: only this test sometimes fails and the tree is fucked up with
 // either equal elements to the right of a node or bigger to the left
-// REMOVE must be broken
+// REMOVE must be broken - the problem is in the splitting plane,
+// when the removed element has multiple valid and EQUAL (in respect to the axis)
+// replacement points to its right, only one is chosen and the other remains on the right
+// breaking the invariant. We have to fish all these points out and build a new left 
+// substree with them to preserve it
 void test_kd_tree_3(void)
 {
     auto input = make_test_input();
